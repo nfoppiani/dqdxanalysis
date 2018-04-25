@@ -1,2 +1,2 @@
 # chargeanalysis
-## LarSoft analyzer to study Bragg peaks and charge in MicroBooNE
+## LarSoft analyzer to study charge deposition for photon-electron classification in MicroBooNE
