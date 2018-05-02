@@ -94,7 +94,6 @@ private:
   double fDirectionx, fDirectiony, fDirectionz;
   double fDistanceFromTrue;
 
-
   double fTrue_vx, fTrue_vy, fTrue_vz;
   std::vector<double> fTrue_v;
   int fTrue_nu_pdg, fTrue_ccnc;
@@ -119,23 +118,28 @@ private:
   // dqdx information
   double _dQdxRectangleLength;
   double _dQdxRectangleWidth;
-  std::vector<double> fDQdx_hits;
-  std::vector<int> fDQdx_wires;
-  std::vector<double> fDQdx;
-  double fDQdx_U, fDQdx_V, fDQdx_Y;
-  int fn_hits_dQdx;
-  double fBox_start_z, fBox_start_x, fBox_direction_z, fBox_direction_x;
-  double fReco_energy_U, fReco_energy_V, fReco_energy_Y;
-  double fAngleZXplaneCluster, fDistance_starts;
+  double _dQdxRectangleLength_end;
 
-  std::vector<double> fDQdx_hits_new;
-  std::vector<int> fDQdx_wires_new;
-  std::vector<double> fDQdx_new;
-  double fDQdx_U_new, fDQdx_V_new, fDQdx_Y_new;
-  int fn_hits_dQdx_new;
-  double fBox_start_z_new, fBox_start_x_new, fBox_direction_z_new, fBox_direction_x_new;
-  double fReco_energy_U_new, fReco_energy_V_new, fReco_energy_Y_new;
-  double fAngleZXplaneCluster_new, fDistance_starts_new;
+  std::vector<double> fDQdx_hits_start;
+  std::vector<int> fDQdx_wires_start;
+  std::vector<double> fDQdx_start;
+  double fDQdx_U_start, fDQdx_V_start, fDQdx_Y_start;
+  int fn_hits_dQdx_start;
+  double fBox_start_z_start, fBox_start_x_start, fBox_direction_z_start, fBox_direction_x_start;
+  double fReco_energy_U_start, fReco_energy_V_start, fReco_energy_Y_start;
+  double fAngleZXplaneCluster_start, fDistance_starts_start;
+
+  std::vector<double> fDQdx_hits_end;
+  std::vector<int> fDQdx_wires_end;
+  std::vector<double> fDQdx_end;
+  double fDQdx_U_end, fDQdx_V_end, fDQdx_Y_end;
+  int fn_hits_dQdx_end;
+  double fBox_start_z_end, fBox_start_x_end, fBox_direction_z_end, fBox_direction_x_end;
+  double fReco_energy_U_end, fReco_energy_V_end, fReco_energy_Y_end;
+  double fAngleZXplaneCluster_end, fDistance_starts_end;
+
+  double fReco_energy_U, fReco_energy_V, fReco_energy_Y;
+  double fPitch_U, fPitch_V, fPitch_Y;
 };
 
 dqdxAnalyzer::dqdxAnalyzer(fhicl::ParameterSet const &p)
@@ -199,36 +203,41 @@ dqdxAnalyzer::dqdxAnalyzer(fhicl::ParameterSet const &p)
   fChargeTree->Branch("distance_from_matched", &fDistanceFromMatched, "distance_from_matched/d");
 
   // dqdx information
-  fChargeTree->Branch("box_direction_x", &fBox_direction_x, "box_direction_x/d");
   fChargeTree->Branch("reco_energy_U", &fReco_energy_U, "reco_energy_U/d");
   fChargeTree->Branch("reco_energy_V", &fReco_energy_V, "reco_energy_V/d");
   fChargeTree->Branch("reco_energy_Y", &fReco_energy_Y, "reco_energy_Y/d");
 
-  fChargeTree->Branch("dQdx_hits", "std::vector<double>", &fDQdx_hits);
-  fChargeTree->Branch("dQdx_wires", "std::vector<int>", &fDQdx_wires);
-  fChargeTree->Branch("dQdx", "std::vector<double>", &fDQdx);
-  fChargeTree->Branch("dQdx_U", &fDQdx_U, "dQdx_U/d");
-  fChargeTree->Branch("dQdx_V", &fDQdx_V, "dQdx_V/d");
-  fChargeTree->Branch("dQdx_Y", &fDQdx_Y, "dQdx_Y/d");
-  fChargeTree->Branch("n_hits_dQdx", &fn_hits_dQdx, "n_hits_dQdx/i");
-  fChargeTree->Branch("box_start_z", &fBox_start_z, "box_start_z/d");
-  fChargeTree->Branch("box_start_x", &fBox_start_x, "box_start_x/d");
-  fChargeTree->Branch("box_direction_z", &fBox_direction_z, "box_direction_z/d");
-  fChargeTree->Branch("angle_ZXplane_cluster", &fAngleZXplaneCluster, "angle_ZXplane_cluster/d");
-  fChargeTree->Branch("distance_starts", &fDistance_starts, "distance_starts/d");
-  
-  fChargeTree->Branch("dQdx_hits_new", "std::vector<double>", &fDQdx_hits_new);
-  fChargeTree->Branch("dQdx_wires_new", "std::vector<int>", &fDQdx_wires_new);
-  fChargeTree->Branch("dQdx_new", "std::vector<double>", &fDQdx_new);
-  fChargeTree->Branch("dQdx_U_new", &fDQdx_U_new, "dQdx_U_new/d");
-  fChargeTree->Branch("dQdx_V_new", &fDQdx_V_new, "dQdx_V_new/d");
-  fChargeTree->Branch("dQdx_Y_new", &fDQdx_Y_new, "dQdx_Y_new/d");
-  fChargeTree->Branch("n_hits_dQdx_new", &fn_hits_dQdx_new, "n_hits_dQdx_new/i");
-  fChargeTree->Branch("box_start_z_new", &fBox_start_z_new, "box_start_z_new/d");
-  fChargeTree->Branch("box_start_x_new", &fBox_start_x_new, "box_start_x_new/d");
-  fChargeTree->Branch("box_direction_z_new", &fBox_direction_z_new, "box_direction_z_new/d");
-  fChargeTree->Branch("angle_ZXplane_cluster_new", &fAngleZXplaneCluster_new, "angle_ZXplane_cluster_new/d");
-  fChargeTree->Branch("distance_starts_new", &fDistance_starts_new, "distance_starts_new/d");
+  fChargeTree->Branch("dQdx_hits_start", "std::vector<double>", &fDQdx_hits_start);
+  fChargeTree->Branch("dQdx_wires_start", "std::vector<int>", &fDQdx_wires_start);
+  fChargeTree->Branch("dQdx_start", "std::vector<double>", &fDQdx_start);
+  fChargeTree->Branch("dQdx_U_start", &fDQdx_U_start, "dQdx_U_start/d");
+  fChargeTree->Branch("dQdx_V_start", &fDQdx_V_start, "dQdx_V_start/d");
+  fChargeTree->Branch("dQdx_Y_start", &fDQdx_Y_start, "dQdx_Y_start/d");
+  fChargeTree->Branch("n_hits_dQdx_start", &fn_hits_dQdx_start, "n_hits_dQdx_start/i");
+  fChargeTree->Branch("box_start_z_start", &fBox_start_z_start, "box_start_z_start/d");
+  fChargeTree->Branch("box_start_x_start", &fBox_start_x_start, "box_start_x_start/d");
+  fChargeTree->Branch("box_direction_z_start", &fBox_direction_z_start, "box_direction_z_start/d");
+  fChargeTree->Branch("box_direction_x_start", &fBox_direction_x_start, "box_direction_x_start/d");
+  fChargeTree->Branch("angle_ZXplane_cluster_start", &fAngleZXplaneCluster_start, "angle_ZXplane_cluster_start/d");
+  fChargeTree->Branch("distance_starts_start", &fDistance_starts_start, "distance_starts_start/d");
+
+  fChargeTree->Branch("dQdx_hits_end", "std::vector<double>", &fDQdx_hits_end);
+  fChargeTree->Branch("dQdx_wires_end", "std::vector<int>", &fDQdx_wires_end);
+  fChargeTree->Branch("dQdx_end", "std::vector<double>", &fDQdx_end);
+  fChargeTree->Branch("dQdx_U_end", &fDQdx_U_end, "dQdx_U_end/d");
+  fChargeTree->Branch("dQdx_V_end", &fDQdx_V_end, "dQdx_V_end/d");
+  fChargeTree->Branch("dQdx_Y_end", &fDQdx_Y_end, "dQdx_Y_end/d");
+  fChargeTree->Branch("n_hits_dQdx_end", &fn_hits_dQdx_end, "n_hits_dQdx_end/i");
+  fChargeTree->Branch("box_start_z_end", &fBox_start_z_end, "box_start_z_end/d");
+  fChargeTree->Branch("box_start_x_end", &fBox_start_x_end, "box_start_x_end/d");
+  fChargeTree->Branch("box_direction_z_end", &fBox_direction_z_end, "box_direction_z_end/d");
+  fChargeTree->Branch("box_direction_x_end", &fBox_direction_x_end, "box_direction_x_end/d");
+  fChargeTree->Branch("angle_ZXplane_cluster_end", &fAngleZXplaneCluster_end, "angle_ZXplane_cluster_end/d");
+  fChargeTree->Branch("distance_starts_end", &fDistance_starts_end, "distance_starts_end/d");
+
+  fChargeTree->Branch("pitch_U", &fPitch_U, "pitch_U/d");
+  fChargeTree->Branch("pitch_V", &fPitch_V, "pitch_V/d");
+  fChargeTree->Branch("pitch_Y", &fPitch_Y, "pitch_Y/d");
 }
 
 // double dqdxAnalyzer::GetChargeCorrection(int plane, double x, double y, double z)
@@ -245,7 +254,7 @@ dqdxAnalyzer::dqdxAnalyzer(fhicl::ParameterSet const &p)
 void dqdxAnalyzer::trueNeutrinoInformation(art::Event const &evt)
 {
   auto const &generator_handle =
-    evt.getValidHandle<std::vector<simb::MCTruth>>(_mctruthLabel);
+      evt.getValidHandle<std::vector<simb::MCTruth>>(_mctruthLabel);
   auto const &generator(*generator_handle);
 
   // bool there_is_a_neutrino = false;
@@ -254,7 +263,7 @@ void dqdxAnalyzer::trueNeutrinoInformation(art::Event const &evt)
   {
     for (auto &gen : generator)
     {
-    //std::cout << "[PandoraLEEAnalyzer] Generator origin " << gen.Origin() << std::endl;
+      //std::cout << "[PandoraLEEAnalyzer] Generator origin " << gen.Origin() << std::endl;
 
       if (gen.Origin() == simb::kBeamNeutrino)
       {
@@ -281,18 +290,18 @@ void dqdxAnalyzer::trueNeutrinoInformation(art::Event const &evt)
         if (SCE->GetPosOffsets(fTrue_vx, fTrue_vy, fTrue_vz).size() == 3)
         {
           fTrue_vx_sce =
-          fTrue_vx - SCE->GetPosOffsets(fTrue_vx, fTrue_vy, fTrue_vz)[0] + 0.7;
+              fTrue_vx - SCE->GetPosOffsets(fTrue_vx, fTrue_vy, fTrue_vz)[0] + 0.7;
           fTrue_vy_sce =
-          fTrue_vy + SCE->GetPosOffsets(fTrue_vx, fTrue_vy, fTrue_vz)[1];
+              fTrue_vy + SCE->GetPosOffsets(fTrue_vx, fTrue_vy, fTrue_vz)[1];
           fTrue_vz_sce =
-          fTrue_vz + SCE->GetPosOffsets(fTrue_vx, fTrue_vy, fTrue_vz)[2];
+              fTrue_vz + SCE->GetPosOffsets(fTrue_vx, fTrue_vy, fTrue_vz)[2];
 
           fTrue_v_sce = {fTrue_vx_sce, fTrue_vy_sce, fTrue_vz_sce};
         }
         else
         {
           std::cout << "[PandoraLEEAnalyzer] "
-          << "Space Charge service offset size < 3" << std::endl;
+                    << "Space Charge service offset size < 3" << std::endl;
           continue;
         }
 
@@ -405,27 +414,28 @@ void dqdxAnalyzer::trueNeutrinoInformation(art::Event const &evt)
 
 void dqdxAnalyzer::clear()
 {
-  fDQdx_hits.clear();
-  fDQdx_wires.clear();
-  fDQdx.clear();
+  fDQdx_hits_start.clear();
+  fDQdx_wires_start.clear();
+  fDQdx_start.clear();
 
-  fDQdx_hits_new.clear();
-  fDQdx_wires_new.clear();
-  fDQdx_new.clear();
+  fDQdx_hits_end.clear();
+  fDQdx_wires_end.clear();
+  fDQdx_end.clear();
 }
 
 void dqdxAnalyzer::reconfigure(fhicl::ParameterSet const &p)
 {
-  _pfp_producer                   = p.get<std::string>("PFParticleProducer", "pandoraNu");
-  _hitfinderLabel                 = p.get<std::string>("HitProducer", "pandoraCosmicHitRemoval");
-  _geantModuleLabel               = p.get<std::string>("GeantModule", "largeant");
-  _spacepointLabel                = p.get<std::string>("SpacePointProducer", "pandoraNu");
-  _mcpHitAssLabel                 = p.get<std::string>("MCPHitAssProducer", "crHitRemovalTruthMatch");
-  _use_premade_ass                = p.get<bool>("UsePremadeMCPHitAss", true);
-  _mctruthLabel                  = p.get<std::string>("MCTruthLabel", "generator");
+  _pfp_producer = p.get<std::string>("PFParticleProducer", "pandoraNu");
+  _hitfinderLabel = p.get<std::string>("HitProducer", "pandoraCosmicHitRemoval");
+  _geantModuleLabel = p.get<std::string>("GeantModule", "largeant");
+  _spacepointLabel = p.get<std::string>("SpacePointProducer", "pandoraNu");
+  _mcpHitAssLabel = p.get<std::string>("MCPHitAssProducer", "crHitRemovalTruthMatch");
+  _use_premade_ass = p.get<bool>("UsePremadeMCPHitAss", true);
+  _mctruthLabel = p.get<std::string>("MCTruthLabel", "generator");
 
-  _dQdxRectangleWidth             = p.get<double>("dQdxRectangleWidth", 1);
-  _dQdxRectangleLength            = p.get<double>("dQdxRectangleLength", 4);
+  _dQdxRectangleWidth = p.get<double>("dQdxRectangleWidth", 1);
+  _dQdxRectangleLength = p.get<double>("dQdxRectangleLength", 4);
+  _dQdxRectangleLength_end = p.get<double>("dQdxRectangleLength_end", 8);
 }
 
 void dqdxAnalyzer::analyze(art::Event const &evt)
@@ -438,10 +448,10 @@ void dqdxAnalyzer::analyze(art::Event const &evt)
 
   auto const &pfparticle_handle =
       evt.getValidHandle<std::vector<recob::PFParticle>>(_pfp_producer);
-  
+
   std::vector<art::Ptr<recob::PFParticle>> pfp_v;
   art::fill_ptr_vector(pfp_v, pfparticle_handle);
-  
+
   auto const &cluster_handle =
       evt.getValidHandle<std::vector<recob::Cluster>>(_pfp_producer);
 
@@ -452,7 +462,7 @@ void dqdxAnalyzer::analyze(art::Event const &evt)
   art::FindManyP<recob::Cluster> clusters_per_pfpart(pfparticle_handle, evt, _pfp_producer);
   art::FindManyP<recob::Hit> hits_per_cluster(cluster_handle, evt, _pfp_producer);
   auto const &spacepoint_handle =
-        evt.getValidHandle<std::vector<recob::SpacePoint>>(_pfp_producer);
+      evt.getValidHandle<std::vector<recob::SpacePoint>>(_pfp_producer);
 
   art::FindManyP<recob::SpacePoint> spcpnts_per_pfpart(pfparticle_handle, evt, _pfp_producer);
   art::FindManyP<recob::Hit> hits_per_spcpnts(spacepoint_handle, evt, _pfp_producer);
@@ -478,7 +488,7 @@ void dqdxAnalyzer::analyze(art::Event const &evt)
     {
       continue;
     }
-    
+
     try
     {
       double i_parent = pfparticle->Parent();
@@ -553,6 +563,12 @@ void dqdxAnalyzer::analyze(art::Event const &evt)
       fDirectionz = 1000000.;
     }
 
+    // store pitch
+    TVector3 t_dir = {fDirectionx, fDirectiony, fDirectionz};
+    fPitch_U = geoHelper.getPitch(t_dir, 0);
+    fPitch_V = geoHelper.getPitch(t_dir, 1);
+    fPitch_Y = geoHelper.getPitch(t_dir, 2);
+
     std::vector<double> fStart = {fStartx, fStarty, fStartz};
     fDistanceFromTrue = geoHelper.distance(fStart, fTrue_v_sce);
     // std::cout << "Startz: " << fStartz <<  ", Startx:  " << fStartx << std::endl;
@@ -592,41 +608,63 @@ void dqdxAnalyzer::analyze(art::Event const &evt)
     fReco_energy_V = this_energy[1];
     fReco_energy_Y = this_energy[2];
 
-    // dqdx old
-    fDQdx = {-1., -1., -1.};
-    std::vector<double> box_start = {1000000., 1000000.};
-    std::vector<double> box_direction = {1000000., 1000000.};
-    energyHelper.dQdx_old(i_pfp, evt, fDQdx, fDQdx_hits, fDQdx_wires, box_start, box_direction, _dQdxRectangleLength, _dQdxRectangleWidth, _pfp_producer);
-    fDQdx_U = fDQdx[0];
-    fDQdx_V = fDQdx[1];
-    fDQdx_Y = fDQdx[2];
-    fn_hits_dQdx = fDQdx_hits.size();
-    fBox_start_z = box_start[0];
-    fBox_start_x = box_start[1];
-    fBox_direction_z = box_direction[0];
-    fBox_direction_x = box_direction[1];
-    fAngleZXplaneCluster = atan2(fBox_direction_x, fBox_direction_z);
-    fDistance_starts = sqrt(pow((fBox_start_x - fStartx), 2) + pow((fBox_start_z - fStartz), 2));
+    // dqdx start
+    fDQdx_start = {-1., -1., -1.};
+    std::vector<double> box_start_start = {1000000., 1000000.};
+    std::vector<double> box_direction_start = {1000000., 1000000.};
+    std::string box_position_start = "start";
+    energyHelper.dQdx_new(i_pfp, 
+                          evt, 
+                          fDQdx_start, 
+                          fDQdx_hits_start, 
+                          fDQdx_wires_start, 
+                          box_start_start, 
+                          box_direction_start,
+                          box_position_start, 
+                          _dQdxRectangleLength, 
+                          _dQdxRectangleWidth, 
+                          _pfp_producer);
+    fDQdx_U_start = fDQdx_start[0];
+    fDQdx_V_start = fDQdx_start[1];
+    fDQdx_Y_start = fDQdx_start[2];
+    fn_hits_dQdx_start = fDQdx_hits_start.size();
+    fBox_start_z_start = box_start_start[0];
+    fBox_start_x_start = box_start_start[1];
+    fBox_direction_z_start = box_direction_start[0];
+    fBox_direction_x_start = box_direction_start[1];
+    fAngleZXplaneCluster_start = atan2(fBox_direction_x_start, fBox_direction_z_start);
+    fDistance_starts_start = sqrt(pow((fBox_start_x_start - fStartx), 2) + pow((fBox_start_z_start - fStartz), 2));
 
-    // dqdx new
-    fDQdx_new = {-1., -1., -1.};
-    std::vector<double> box_start_new = {1000000., 1000000.};
-    std::vector<double> box_direction_new = {1000000., 1000000.};
-    energyHelper.dQdx_new(i_pfp, evt, fDQdx_new, fDQdx_hits_new, fDQdx_wires, box_start_new, box_direction_new, _dQdxRectangleLength, _dQdxRectangleWidth, _pfp_producer);
-    fDQdx_U_new = fDQdx_new[0];
-    fDQdx_V_new = fDQdx_new[1];
-    fDQdx_Y_new = fDQdx_new[2];
-    fn_hits_dQdx_new = fDQdx_hits_new.size();
-    fBox_start_z_new = box_start_new[0];
-    fBox_start_x_new = box_start_new[1];
-    fBox_direction_z_new = box_direction_new[0];
-    fBox_direction_x_new = box_direction_new[1];
-    fAngleZXplaneCluster_new = atan2(fBox_direction_x_new, fBox_direction_z_new);
-    fDistance_starts_new = sqrt(pow((fBox_start_x_new - fStartx), 2) + pow((fBox_start_z_new - fStartz), 2));
+    // dqdx end
+    fDQdx_end = {-1., -1., -1.};
+    std::vector<double> box_start_end = {1000000., 1000000.};
+    std::vector<double> box_direction_end = {1000000., 1000000.};
+    std::string box_position_end = "end";
+    energyHelper.dQdx_new(i_pfp, 
+                          evt, 
+                          fDQdx_end, 
+                          fDQdx_hits_end, 
+                          fDQdx_wires_end, 
+                          box_start_end, 
+                          box_direction_end,
+                          box_position_end, 
+                          _dQdxRectangleLength_end, 
+                          _dQdxRectangleWidth, 
+                          _pfp_producer);
+    fDQdx_U_end = fDQdx_end[0];
+    fDQdx_V_end = fDQdx_end[1];
+    fDQdx_Y_end = fDQdx_end[2];
+    fn_hits_dQdx_end = fDQdx_hits_end.size();
+    fBox_start_z_end = box_start_end[0];
+    fBox_start_x_end = box_start_end[1];
+    fBox_direction_z_end = box_direction_end[0];
+    fBox_direction_x_end = box_direction_end[1];
+    fAngleZXplaneCluster_end = atan2(fBox_direction_x_end, fBox_direction_z_end);
+    fDistance_starts_end = sqrt(pow((fBox_start_x_end - fStartx), 2) + pow((fBox_start_z_end - fStartz), 2));
 
-    // reco-true matching configuration 
+    // reco-true matching configuration
     bool _is_data = evt.isRealData();
-    if (_is_data) 
+    if (_is_data)
     {
       std::cout << "[RecoTrueMatcher] Running on a real data file. No MC-PFP matching will be attempted." << std::endl;
       fMatchedPdgCode = 1000000.;
@@ -643,17 +681,17 @@ void dqdxAnalyzer::analyze(art::Event const &evt)
     }
     else
     {
-      if (_use_premade_ass)   
+      if (_use_premade_ass)
         _mcpfpMatcher.Configure(evt, _pfp_producer, _spacepointLabel, _hitfinderLabel, _geantModuleLabel, _mcpHitAssLabel, lar_pandora::LArPandoraHelper::kAddDaughters);
-      else 
+      else
         _mcpfpMatcher.Configure(evt, _pfp_producer, _spacepointLabel, _hitfinderLabel, _geantModuleLabel);
-      
+
       // This is a map: PFParticle to matched MCParticle: std::map<art::Ptr<recob::PFParticle>, art::Ptr<simb::MCParticle> >
       lar_pandora::PFParticlesToMCParticles matched_pfp_to_mcp_map;
       _mcpfpMatcher.GetRecoToTrueMatches(matched_pfp_to_mcp_map);
 
       auto iter = matched_pfp_to_mcp_map.find(pfparticle);
-      if (iter == matched_pfp_to_mcp_map.end()) 
+      if (iter == matched_pfp_to_mcp_map.end())
       {
         fMatchedPdgCode = 1000000.;
         fMatchedE = 1000000.;
@@ -666,8 +704,8 @@ void dqdxAnalyzer::analyze(art::Event const &evt)
         fMatchedEndx = 1000000.;
         fMatchedEndy = 1000000.;
         fMatchedEndz = 1000000.;
-      } 
-      else 
+      }
+      else
       {
         art::Ptr<simb::MCParticle> mc_part = iter->second;
         fMatchedPdgCode = mc_part->PdgCode();
@@ -685,7 +723,7 @@ void dqdxAnalyzer::analyze(art::Event const &evt)
         std::vector<double> fStart_true = {fMatchedVx, fMatchedVy, fMatchedVz};
         fDistanceFromMatched = geoHelper.distance(fStart_true, fTrue_v);
       }
-    }  
+    }
 
     fChargeTree->Fill();
     clear();

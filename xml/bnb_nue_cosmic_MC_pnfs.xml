@@ -9,10 +9,13 @@
 <!ENTITY user "foppiani">
 <!ENTITY dataset "prodgenie_bnb_intrinsic_nue_cosmic_uboone_mcc8.7_reco2_dev">
 <!ENTITY stage_name "dqdx">
-<!ENTITY tarball_location "/uboone/app/users/foppiani/Binaries/MyLarsoft/srcs/tar/v4/dqdx_analyzer.tar">
+<!--ENTITY tarball_location "/uboone/app/users/foppiani/Binaries/MyLarsoft/srcs/tar/v4/dqdx_analyzer.tar"-->
+<!ENTITY tarball_location "/pnfs/uboone/resilient/users/foppiani/tar/v1/dqdx_analyzer.tar">
 <!ENTITY fcl_directory "/uboone/app/users/foppiani/Binaries/MyLarsoft/srcs/dqdxanalysis/dqdxanalysis/job/">
 <!ENTITY fcl_name "dqdxanalysis.fcl">
 <!ENTITY main_dir "/uboone/data/users/foppiani/">
+<!ENTITY resilient_dir "/pnfs/uboone/resilient/users/foppiani/">
+<!ENTITY scratch_dir "/pnfs/uboone/scratch/users/foppiani/">
 <!ENTITY temp_dir "/uboone/data/users/foppiani/temp/temp/">
 <!ENTITY book_dir "/uboone/data/users/foppiani/temp/book/">
 ]>
@@ -46,17 +49,23 @@
     <fcl>&fcl_name;</fcl>
     <inputdef>&dataset;</inputdef>
 
-    <outdir>&main_dir;&name;/v&project_version;/out/</outdir>
-    <logdir>&main_dir;&name;/v&project_version;/log/</logdir>
-    <workdir>&main_dir;&name;/v&project_version;/work/</workdir>
+    <outdir>&scratch_dir;&name;/v&project_version;/out/</outdir>
+    <logdir>&scratch_dir;&name;/v&project_version;/log/</logdir>
+    <workdir>&resilient_dir;&name;/v&project_version;/work/</workdir>
     <bookdir>&book_dir;&name;/v&project_version;/</bookdir>
 
+    <!--
     <numjobs>200</numjobs>
     <disk>4GB</disk>
     <memory>2048</memory>
-    <maxfilesperjob>15</maxfilesperjob>
+    <maxfilesperjob>15</maxfilesperjob> -->
+    <numjobs>2</numjobs>
+    <disk>4GB</disk>
+    <memory>2048</memory>
+    <maxfilesperjob>1</maxfilesperjob>
     <schema>root</schema>
-    <jobsub>  --expected-lifetime=5h -q --generate-email-summary </jobsub>
+    <jobsub>--expected-lifetime=5h -q --generate-email-summary --append_condor_requirements='(TARGET.HAS_CVMFS_uboone_opensciencegrid_org==true)'</jobsub>
+    <jobsub_start>--append_condor_requirements='(TARGET.HAS_CVMFS_uboone_opensciencegrid_org==true)'</jobsub_start>
   </stage>
 
 </project>

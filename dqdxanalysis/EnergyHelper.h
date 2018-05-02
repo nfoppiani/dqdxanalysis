@@ -67,6 +67,7 @@ public:
             std::vector<int> &dqdx_wires,
             std::vector<double> &box_start,
             std::vector<double> &box_direction,
+            std::string box_position,
             double m_dQdxRectangleLength, double m_dQdxRectangleWidth,
             std::string _pfp_producer);
 
