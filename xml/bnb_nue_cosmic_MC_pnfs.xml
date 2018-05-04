@@ -5,12 +5,12 @@
 <!ENTITY qualifier "e10:prof">
 <!ENTITY file_type "mc">
 <!ENTITY run_type "physics">
-<!ENTITY project_version "2_box_4cm_many_jobs">
+<!ENTITY project_version "3">
 <!ENTITY user "foppiani">
 <!ENTITY dataset "prodgenie_bnb_intrinsic_nue_cosmic_uboone_mcc8.7_reco2_dev">
 <!ENTITY stage_name "dqdx">
 <!--ENTITY tarball_location "/uboone/app/users/foppiani/Binaries/MyLarsoft/srcs/tar/v4/dqdx_analyzer.tar"-->
-<!ENTITY tarball_location "/pnfs/uboone/resilient/users/foppiani/tar/v1/dqdx_analyzer.tar">
+<!ENTITY tarball_location "/pnfs/uboone/resilient/users/foppiani/tar/v2/dqdx_charge_analyzer.tar">
 <!ENTITY fcl_directory "/uboone/app/users/foppiani/Binaries/MyLarsoft/srcs/dqdxanalysis/dqdxanalysis/job/">
 <!ENTITY fcl_name "dqdxanalysis.fcl">
 <!ENTITY main_dir "/uboone/data/users/foppiani/">
@@ -54,15 +54,10 @@
     <workdir>&resilient_dir;&name;/v&project_version;/work/</workdir>
     <bookdir>&book_dir;&name;/v&project_version;/</bookdir>
 
-    <!--
     <numjobs>200</numjobs>
     <disk>4GB</disk>
     <memory>2048</memory>
-    <maxfilesperjob>15</maxfilesperjob> -->
-    <numjobs>2</numjobs>
-    <disk>4GB</disk>
-    <memory>2048</memory>
-    <maxfilesperjob>1</maxfilesperjob>
+    <maxfilesperjob>15</maxfilesperjob>
     <schema>root</schema>
     <jobsub>--expected-lifetime=5h -q --generate-email-summary --append_condor_requirements='(TARGET.HAS_CVMFS_uboone_opensciencegrid_org==true)'</jobsub>
     <jobsub_start>--append_condor_requirements='(TARGET.HAS_CVMFS_uboone_opensciencegrid_org==true)'</jobsub_start>

@@ -27,7 +27,15 @@ void EnergyHelper::energyFromHits(recob::PFParticle const &pfparticle,
   std::vector<art::Ptr<recob::Cluster>> clusters =
       cluster_pfparticle_ass.at(pfparticle.Self());
 
-
+  std::vector<double> _gain;
+  if (evt.isRealData())
+  {
+    _gain = _data_gain;
+  }
+  else
+  {
+    _gain = _mc_gain;
+  }
 
   nHits.resize(3);
   pfenergy.resize(3);
@@ -152,26 +160,23 @@ void EnergyHelper::PCA(size_t pfp_id,
 
 void EnergyHelper::dQdx(size_t pfp_id,
                             const art::Event &evt,
-                            std::vector<double> &dqdx,
-                            std::vector<double> &dqdx_hits,
-                            std::vector<int> &dqdx_wires,
-                            std::vector<double> &box_start,
-                            std::vector<double> &box_direction,
-                            std::string box_position,
+                            double dqdx[3],
+                            std::vector<std::vector<double>> &dqdx_hits,
+                            std::vector<std::vector<int>> &dqdx_wires,
+                            double box_start[3][2],
+                            double box_direction[3][2],
+                            const std::string box_position,
                             double m_dQdxRectangleLength,
                             double m_dQdxRectangleWidth,
                             std::string _pfp_producer)
-{
+{ 
   if (box_position != "start" && box_position != "end")
   {
     return;
   }
 
-  std::vector<double> _gain;
-  if (evt.isRealData())
-    _gain = _data_gain;
-  else
-    _gain = _mc_gain;
+  double wireSpacing = 0.3;
+  double tolerance = 0.001;
 
   detinfo::DetectorProperties const *detprop =
       lar::providerFrom<detinfo::DetectorPropertiesService>();
@@ -229,14 +234,13 @@ void EnergyHelper::dQdx(size_t pfp_id,
   {
     std::vector<art::Ptr<recob::Hit>> hits =
         hits_per_clusters.at(clusters[icl].key());
-
-    double wireSpacing = 0.3;
-    double tolerance = 0.001;
+    int plane_number = clusters[icl]->Plane().Plane;
+    
     std::vector<double> cluster_axis;
     std::vector<double> cluster_start;
     std::vector<double> cluster_end;
 
-    double pitch = geoHelper.getPitch(pfp_dir, clusters[icl]->Plane().Plane);
+    double pitch = geoHelper.getPitch(pfp_dir, plane_number);
     if (box_position == "end")
     {
       pitch *= -1;
@@ -290,18 +294,15 @@ void EnergyHelper::dQdx(size_t pfp_id,
 
       if (is_within)
       {
-        double q = integral2charge(evt, hit->Integral(), clusters[icl]->Plane().Plane);
+        double q = integral2charge(evt, hit->Integral(), plane_number);
         double dedx = dQdx2dEdx(q / fabs(pitch));
         dqdxs.push_back(dedx);
-        if (clusters[icl]->Plane().Plane == 2)
-        {
-          dqdx_hits.push_back(dedx);
-          dqdx_wires.push_back(hit->WireID().Wire);
-          box_start[0] = cluster_start[0];
-          box_start[1] = cluster_start[1];
-          box_direction[0] = cluster_axis[0];
-          box_direction[1] = cluster_axis[1];
-        }
+        dqdx_hits[plane_number].push_back(dedx);
+        dqdx_wires[plane_number].push_back(hit->WireID().Wire);
+        box_start[plane_number][0] = cluster_start[0];
+        box_start[plane_number][1] = cluster_start[1];
+        box_direction[plane_number][0] = cluster_axis[0];
+        box_direction[plane_number][1] = cluster_axis[1];
       }
     }
 
@@ -309,7 +310,7 @@ void EnergyHelper::dQdx(size_t pfp_id,
     if (dqdxs.size() > 0)
     {
       std::nth_element(dqdxs.begin(), dqdxs.begin() + dqdxs.size() / 2, dqdxs.end());
-      dqdx[clusters[icl]->Plane().Plane] = dqdxs[dqdxs.size() / 2];
+      dqdx[plane_number] = dqdxs[dqdxs.size() / 2];
     }
   }
 }

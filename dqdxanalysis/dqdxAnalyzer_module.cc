@@ -123,18 +123,18 @@ private:
 
   std::vector<double> fDQdx_hits_start;
   std::vector<int> fDQdx_wires_start;
-  std::vector<double> fDQdx_start;
+  double fDQdx_start[3];
   double fDQdx_U_start, fDQdx_V_start, fDQdx_Y_start;
-  int fn_hits_dQdx_start;
+  int fn_hits_dQdx_U_start, fn_hits_dQdx_V_start, fn_hits_dQdx_Y_start;
   double fBox_start_z_start, fBox_start_x_start, fBox_direction_z_start, fBox_direction_x_start;
   double fReco_energy_U_start, fReco_energy_V_start, fReco_energy_Y_start;
   double fAngleZXplaneCluster_start, fDistance_starts_start;
 
   std::vector<double> fDQdx_hits_end;
   std::vector<int> fDQdx_wires_end;
-  std::vector<double> fDQdx_end;
+  double fDQdx_end[3];
   double fDQdx_U_end, fDQdx_V_end, fDQdx_Y_end;
-  int fn_hits_dQdx_end;
+  int fn_hits_dQdx_U_end, fn_hits_dQdx_V_end, fn_hits_dQdx_Y_end;
   double fBox_start_z_end, fBox_start_x_end, fBox_direction_z_end, fBox_direction_x_end;
   double fReco_energy_U_end, fReco_energy_V_end, fReco_energy_Y_end;
   double fAngleZXplaneCluster_end, fDistance_starts_end;
@@ -211,11 +211,13 @@ dqdxAnalyzer::dqdxAnalyzer(fhicl::ParameterSet const &p)
 
   fChargeTree->Branch("dQdx_hits_start", "std::vector<double>", &fDQdx_hits_start);
   fChargeTree->Branch("dQdx_wires_start", "std::vector<int>", &fDQdx_wires_start);
-  fChargeTree->Branch("dQdx_start", "std::vector<double>", &fDQdx_start);
+  // fChargeTree->Branch("dQdx_start", "std::vector<double>", &fDQdx_start);
   fChargeTree->Branch("dQdx_U_start", &fDQdx_U_start, "dQdx_U_start/d");
   fChargeTree->Branch("dQdx_V_start", &fDQdx_V_start, "dQdx_V_start/d");
   fChargeTree->Branch("dQdx_Y_start", &fDQdx_Y_start, "dQdx_Y_start/d");
-  fChargeTree->Branch("n_hits_dQdx_start", &fn_hits_dQdx_start, "n_hits_dQdx_start/i");
+  fChargeTree->Branch("n_hits_dQdx_U_start", &fn_hits_dQdx_U_start, "n_hits_dQdx_U_start/i");
+  fChargeTree->Branch("n_hits_dQdx_V_start", &fn_hits_dQdx_V_start, "n_hits_dQdx_V_start/i");
+  fChargeTree->Branch("n_hits_dQdx_Y_start", &fn_hits_dQdx_Y_start, "n_hits_dQdx_Y_start/i");
   fChargeTree->Branch("box_start_z_start", &fBox_start_z_start, "box_start_z_start/d");
   fChargeTree->Branch("box_start_x_start", &fBox_start_x_start, "box_start_x_start/d");
   fChargeTree->Branch("box_direction_z_start", &fBox_direction_z_start, "box_direction_z_start/d");
@@ -225,11 +227,13 @@ dqdxAnalyzer::dqdxAnalyzer(fhicl::ParameterSet const &p)
 
   fChargeTree->Branch("dQdx_hits_end", "std::vector<double>", &fDQdx_hits_end);
   fChargeTree->Branch("dQdx_wires_end", "std::vector<int>", &fDQdx_wires_end);
-  fChargeTree->Branch("dQdx_end", "std::vector<double>", &fDQdx_end);
+  // fChargeTree->Branch("dQdx_end", "std::vector<double>", &fDQdx_end);
   fChargeTree->Branch("dQdx_U_end", &fDQdx_U_end, "dQdx_U_end/d");
   fChargeTree->Branch("dQdx_V_end", &fDQdx_V_end, "dQdx_V_end/d");
   fChargeTree->Branch("dQdx_Y_end", &fDQdx_Y_end, "dQdx_Y_end/d");
-  fChargeTree->Branch("n_hits_dQdx_end", &fn_hits_dQdx_end, "n_hits_dQdx_end/i");
+  fChargeTree->Branch("n_hits_dQdx_U_end", &fn_hits_dQdx_U_end, "n_hits_dQdx_U_end/i");
+  fChargeTree->Branch("n_hits_dQdx_V_end", &fn_hits_dQdx_V_end, "n_hits_dQdx_V_end/i");
+  fChargeTree->Branch("n_hits_dQdx_Y_end", &fn_hits_dQdx_Y_end, "n_hits_dQdx_Y_end/i");
   fChargeTree->Branch("box_start_z_end", &fBox_start_z_end, "box_start_z_end/d");
   fChargeTree->Branch("box_start_x_end", &fBox_start_x_end, "box_start_x_end/d");
   fChargeTree->Branch("box_direction_z_end", &fBox_direction_z_end, "box_direction_z_end/d");
@@ -253,7 +257,7 @@ dqdxAnalyzer::dqdxAnalyzer(fhicl::ParameterSet const &p)
 //   return correction;
 // }
 
-void ChargeAnalyzer::recoTrueMatching(art::Event const &evt, art::Ptr<recob::PFParticle> const &pfparticle)
+void dqdxAnalyzer::recoTrueMatching(art::Event const &evt, art::Ptr<recob::PFParticle> const &pfparticle)
 {
   bool _is_data = evt.isRealData();
   if (_is_data)
@@ -482,11 +486,14 @@ void dqdxAnalyzer::clear()
 {
   fDQdx_hits_start.clear();
   fDQdx_wires_start.clear();
-  fDQdx_start.clear();
 
   fDQdx_hits_end.clear();
   fDQdx_wires_end.clear();
-  fDQdx_end.clear();
+  for(size_t i=0; i<3; i++)
+  {
+    fDQdx_start[i] = -1;
+    fDQdx_end[i] = -1;
+  }
 }
 
 void dqdxAnalyzer::reconfigure(fhicl::ParameterSet const &p)
@@ -681,15 +688,25 @@ void dqdxAnalyzer::analyze(art::Event const &evt)
     fReco_energy_Y = this_energy[2];
 
     // dqdx start
-    fDQdx_start = {-1., -1., -1.};
-    std::vector<double> box_start_start = {1000000., 1000000.};
-    std::vector<double> box_direction_start = {1000000., 1000000.};
+    // fDQdx_start = {-1., -1., -1.};
+    double box_start_start[3][2], box_direction_start[3][2];
+    for(size_t i=0; i<3; i++)
+    {
+      box_start_start[i][0] = 1000000;
+      box_start_start[i][1] = 1000000;
+      box_direction_start[i][0] = 1000000;
+      box_direction_start[i][1] = 1000000;
+    }
+    std::vector<std::vector<double>> aux_dqdx_hits_start;
+    aux_dqdx_hits_start.resize(3, std::vector<double>(0));
+    std::vector<std::vector<int>> aux_dqdx_wires_start;
+    aux_dqdx_wires_start.resize(3, std::vector<int>(0));
     std::string box_position_start = "start";
-    energyHelper.dQdx_new(i_pfp, 
+    energyHelper.dQdx(i_pfp, 
                           evt, 
                           fDQdx_start, 
-                          fDQdx_hits_start, 
-                          fDQdx_wires_start, 
+                          aux_dqdx_hits_start, 
+                          aux_dqdx_wires_start, 
                           box_start_start, 
                           box_direction_start,
                           box_position_start, 
@@ -699,24 +716,38 @@ void dqdxAnalyzer::analyze(art::Event const &evt)
     fDQdx_U_start = fDQdx_start[0];
     fDQdx_V_start = fDQdx_start[1];
     fDQdx_Y_start = fDQdx_start[2];
-    fn_hits_dQdx_start = fDQdx_hits_start.size();
-    fBox_start_z_start = box_start_start[0];
-    fBox_start_x_start = box_start_start[1];
-    fBox_direction_z_start = box_direction_start[0];
-    fBox_direction_x_start = box_direction_start[1];
+    fn_hits_dQdx_U_start = aux_dqdx_hits_start[0].size();
+    fn_hits_dQdx_V_start = aux_dqdx_hits_start[1].size();
+    fn_hits_dQdx_Y_start = aux_dqdx_hits_start[2].size();
+    fDQdx_hits_start = aux_dqdx_hits_start[2];
+    fDQdx_wires_start = aux_dqdx_wires_start[2];
+    fBox_start_z_start = box_start_start[2][0];
+    fBox_start_x_start = box_start_start[2][1];
+    fBox_direction_z_start = box_direction_start[2][0];
+    fBox_direction_x_start = box_direction_start[2][1];
     fAngleZXplaneCluster_start = atan2(fBox_direction_x_start, fBox_direction_z_start);
     fDistance_starts_start = sqrt(pow((fBox_start_x_start - fStartx), 2) + pow((fBox_start_z_start - fStartz), 2));
 
     // dqdx end
-    fDQdx_end = {-1., -1., -1.};
-    std::vector<double> box_start_end = {1000000., 1000000.};
-    std::vector<double> box_direction_end = {1000000., 1000000.};
+    // fDQdx_end = {-1., -1., -1.};
+    double box_start_end[3][2], box_direction_end[3][2];
+    for(size_t i=0; i<3; i++)
+    {
+      box_start_end[i][0] = 1000000;
+      box_start_end[i][1] = 1000000;
+      box_direction_end[i][0] = 1000000;
+      box_direction_end[i][1] = 1000000;
+    }
+    std::vector<std::vector<double>> aux_dqdx_hits_end;
+    aux_dqdx_hits_end.resize(3, std::vector<double>(0));
+    std::vector<std::vector<int>> aux_dqdx_wires_end;
+    aux_dqdx_wires_end.resize(3, std::vector<int>(0));
     std::string box_position_end = "end";
-    energyHelper.dQdx_new(i_pfp, 
+    energyHelper.dQdx(i_pfp, 
                           evt, 
                           fDQdx_end, 
-                          fDQdx_hits_end, 
-                          fDQdx_wires_end, 
+                          aux_dqdx_hits_end, 
+                          aux_dqdx_wires_end, 
                           box_start_end, 
                           box_direction_end,
                           box_position_end, 
@@ -726,11 +757,15 @@ void dqdxAnalyzer::analyze(art::Event const &evt)
     fDQdx_U_end = fDQdx_end[0];
     fDQdx_V_end = fDQdx_end[1];
     fDQdx_Y_end = fDQdx_end[2];
-    fn_hits_dQdx_end = fDQdx_hits_end.size();
-    fBox_start_z_end = box_start_end[0];
-    fBox_start_x_end = box_start_end[1];
-    fBox_direction_z_end = box_direction_end[0];
-    fBox_direction_x_end = box_direction_end[1];
+    fn_hits_dQdx_U_end = aux_dqdx_hits_end[0].size();
+    fn_hits_dQdx_V_end = aux_dqdx_hits_end[1].size();
+    fn_hits_dQdx_Y_end = aux_dqdx_hits_end[2].size();
+    fDQdx_hits_end = aux_dqdx_hits_end[2];
+    fDQdx_wires_end = aux_dqdx_wires_end[2];
+    fBox_start_z_end = box_start_end[2][0];
+    fBox_start_x_end = box_start_end[2][1];
+    fBox_direction_z_end = box_direction_end[2][0];
+    fBox_direction_x_end = box_direction_end[2][1];
     fAngleZXplaneCluster_end = atan2(fBox_direction_x_end, fBox_direction_z_end);
     fDistance_starts_end = sqrt(pow((fBox_start_x_end - fStartx), 2) + pow((fBox_start_z_end - fStartz), 2));
 

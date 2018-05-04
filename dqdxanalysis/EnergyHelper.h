@@ -62,12 +62,12 @@ public:
 
   void dQdx(size_t pfp_id,
             const art::Event &evt,
-            std::vector<double> &dqdx,
-            std::vector<double> &dqdx_hits,
-            std::vector<int> &dqdx_wires,
-            std::vector<double> &box_start,
-            std::vector<double> &box_direction,
-            std::string box_position,
+            double dqdx[3],
+            std::vector<std::vector<double>> &dqdx_hits,
+            std::vector<std::vector<int>> &dqdx_wires,
+            double box_start[3][2],
+            double box_direction[3][2],
+            const std::string box_position,
             double m_dQdxRectangleLength, double m_dQdxRectangleWidth,
             std::string _pfp_producer);
 
