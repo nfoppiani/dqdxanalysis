@@ -67,6 +67,7 @@ public:
   void reconfigure(fhicl::ParameterSet const &p) override;
   void clear();
 
+  void recoTrueMatching(art::Event const &evt, art::Ptr<recob::PFParticle> const &pfparticle);
   void trueNeutrinoInformation(art::Event const &evt);
   // double GetChargeCorrection(int plane, double x, double y, double z);
 
@@ -113,7 +114,7 @@ private:
   double fMatchedPx, fMatchedPy, fMatchedPz;
   double fMatchedVx, fMatchedVy, fMatchedVz;
   double fMatchedEndx, fMatchedEndy, fMatchedEndz;
-  double fDistanceFromMatched;
+  double fDistanceFromMatched, fMC_reco_costheta;
 
   // dqdx information
   double _dQdxRectangleLength;
@@ -201,6 +202,7 @@ dqdxAnalyzer::dqdxAnalyzer(fhicl::ParameterSet const &p)
   fChargeTree->Branch("matched_endy", &fMatchedEndy, "matched_endy/d");
   fChargeTree->Branch("matched_endz", &fMatchedEndz, "matched_endz/d");
   fChargeTree->Branch("distance_from_matched", &fDistanceFromMatched, "distance_from_matched/d");
+  fChargeTree->Branch("mc_reco_costheta", &fMC_reco_costheta, "mc_reco_costheta/d");
 
   // dqdx information
   fChargeTree->Branch("reco_energy_U", &fReco_energy_U, "reco_energy_U/d");
@@ -250,6 +252,70 @@ dqdxAnalyzer::dqdxAnalyzer(fhicl::ParameterSet const &p)
 //   correction = yz_correction * x_correction;
 //   return correction;
 // }
+
+void ChargeAnalyzer::recoTrueMatching(art::Event const &evt, art::Ptr<recob::PFParticle> const &pfparticle)
+{
+  bool _is_data = evt.isRealData();
+  if (_is_data)
+  {
+    std::cout << "[RecoTrueMatcher] Running on a real data file. No MC-PFP matching will be attempted." << std::endl;
+    fMatchedPdgCode = 1000000.;
+    fMatchedE = 1000000.;
+    fMatchedPx = 1000000.;
+    fMatchedPy = 1000000.;
+    fMatchedPz = 1000000.;
+    fMatchedVx = 1000000.;
+    fMatchedVy = 1000000.;
+    fMatchedVz = 1000000.;
+    fMatchedEndx = 1000000.;
+    fMatchedEndy = 1000000.;
+    fMatchedEndz = 1000000.;
+  }
+  else
+  {
+    if (_use_premade_ass)
+      _mcpfpMatcher.Configure(evt, _pfp_producer, _spacepointLabel, _hitfinderLabel, _geantModuleLabel, _mcpHitAssLabel, lar_pandora::LArPandoraHelper::kAddDaughters);
+    else
+      _mcpfpMatcher.Configure(evt, _pfp_producer, _spacepointLabel, _hitfinderLabel, _geantModuleLabel);
+
+    // This is a map: PFParticle to matched MCParticle: std::map<art::Ptr<recob::PFParticle>, art::Ptr<simb::MCParticle> >
+    lar_pandora::PFParticlesToMCParticles matched_pfp_to_mcp_map;
+    _mcpfpMatcher.GetRecoToTrueMatches(matched_pfp_to_mcp_map);
+
+    auto iter = matched_pfp_to_mcp_map.find(pfparticle);
+    if (iter == matched_pfp_to_mcp_map.end())
+    {
+      fMatchedPdgCode = 1000000.;
+      fMatchedE = 1000000.;
+      fMatchedPx = 1000000.;
+      fMatchedPy = 1000000.;
+      fMatchedPz = 1000000.;
+      fMatchedVx = 1000000.;
+      fMatchedVy = 1000000.;
+      fMatchedVz = 1000000.;
+      fMatchedEndx = 1000000.;
+      fMatchedEndy = 1000000.;
+      fMatchedEndz = 1000000.;
+    }
+    else
+    {
+      art::Ptr<simb::MCParticle> mc_part = iter->second;
+      fMatchedPdgCode = mc_part->PdgCode();
+      fMatchedE = mc_part->E();
+      fMatchedPx = mc_part->Px();
+      fMatchedPy = mc_part->Py();
+      fMatchedPz = mc_part->Pz();
+      fMatchedVx = mc_part->Vx();
+      fMatchedVy = mc_part->Vy();
+      fMatchedVz = mc_part->Vz();
+      fMatchedEndx = mc_part->EndX();
+      fMatchedEndy = mc_part->EndY();
+      fMatchedEndz = mc_part->EndZ();
+      std::vector<double> fStart_true = {fMatchedVx, fMatchedVy, fMatchedVz};
+      fDistanceFromMatched = geoHelper.distance(fStart_true, fTrue_v);
+    }
+  }
+}
 
 void dqdxAnalyzer::trueNeutrinoInformation(art::Event const &evt)
 {
@@ -563,11 +629,17 @@ void dqdxAnalyzer::analyze(art::Event const &evt)
       fDirectionz = 1000000.;
     }
 
+    // reco true matching
+    recoTrueMatching(evt, pfparticle);
+    double reco_dir[3] = {fDirectionx, fDirectiony, fDirectionz};
+    double mc_dir[3] = {fMatchedPx, fMatchedPy, fMatchedPz};
+    fMC_reco_costheta = geoHelper.costheta(reco_dir, mc_dir);
+
     // store pitch
-    TVector3 t_dir = {fDirectionx, fDirectiony, fDirectionz};
-    fPitch_U = geoHelper.getPitch(t_dir, 0);
-    fPitch_V = geoHelper.getPitch(t_dir, 1);
-    fPitch_Y = geoHelper.getPitch(t_dir, 2);
+    TVector3 t_reco_dir = TVector3(reco_dir);
+    fPitch_U = geoHelper.getPitch(t_reco_dir, 0);
+    fPitch_V = geoHelper.getPitch(t_reco_dir, 1);
+    fPitch_Y = geoHelper.getPitch(t_reco_dir, 2);
 
     std::vector<double> fStart = {fStartx, fStarty, fStartz};
     fDistanceFromTrue = geoHelper.distance(fStart, fTrue_v_sce);
@@ -661,69 +733,6 @@ void dqdxAnalyzer::analyze(art::Event const &evt)
     fBox_direction_x_end = box_direction_end[1];
     fAngleZXplaneCluster_end = atan2(fBox_direction_x_end, fBox_direction_z_end);
     fDistance_starts_end = sqrt(pow((fBox_start_x_end - fStartx), 2) + pow((fBox_start_z_end - fStartz), 2));
-
-    // reco-true matching configuration
-    bool _is_data = evt.isRealData();
-    if (_is_data)
-    {
-      std::cout << "[RecoTrueMatcher] Running on a real data file. No MC-PFP matching will be attempted." << std::endl;
-      fMatchedPdgCode = 1000000.;
-      fMatchedE = 1000000.;
-      fMatchedPx = 1000000.;
-      fMatchedPy = 1000000.;
-      fMatchedPz = 1000000.;
-      fMatchedVx = 1000000.;
-      fMatchedVy = 1000000.;
-      fMatchedVz = 1000000.;
-      fMatchedEndx = 1000000.;
-      fMatchedEndy = 1000000.;
-      fMatchedEndz = 1000000.;
-    }
-    else
-    {
-      if (_use_premade_ass)
-        _mcpfpMatcher.Configure(evt, _pfp_producer, _spacepointLabel, _hitfinderLabel, _geantModuleLabel, _mcpHitAssLabel, lar_pandora::LArPandoraHelper::kAddDaughters);
-      else
-        _mcpfpMatcher.Configure(evt, _pfp_producer, _spacepointLabel, _hitfinderLabel, _geantModuleLabel);
-
-      // This is a map: PFParticle to matched MCParticle: std::map<art::Ptr<recob::PFParticle>, art::Ptr<simb::MCParticle> >
-      lar_pandora::PFParticlesToMCParticles matched_pfp_to_mcp_map;
-      _mcpfpMatcher.GetRecoToTrueMatches(matched_pfp_to_mcp_map);
-
-      auto iter = matched_pfp_to_mcp_map.find(pfparticle);
-      if (iter == matched_pfp_to_mcp_map.end())
-      {
-        fMatchedPdgCode = 1000000.;
-        fMatchedE = 1000000.;
-        fMatchedPx = 1000000.;
-        fMatchedPy = 1000000.;
-        fMatchedPz = 1000000.;
-        fMatchedVx = 1000000.;
-        fMatchedVy = 1000000.;
-        fMatchedVz = 1000000.;
-        fMatchedEndx = 1000000.;
-        fMatchedEndy = 1000000.;
-        fMatchedEndz = 1000000.;
-      }
-      else
-      {
-        art::Ptr<simb::MCParticle> mc_part = iter->second;
-        fMatchedPdgCode = mc_part->PdgCode();
-        fMatchedE = mc_part->E();
-        fMatchedPx = mc_part->Px();
-        fMatchedPy = mc_part->Py();
-        fMatchedPz = mc_part->Pz();
-        fMatchedVx = mc_part->Vx();
-        fMatchedVy = mc_part->Vy();
-        fMatchedVz = mc_part->Vz();
-        fMatchedEndx = mc_part->EndX();
-        fMatchedEndy = mc_part->EndY();
-        fMatchedEndz = mc_part->EndZ();
-
-        std::vector<double> fStart_true = {fMatchedVx, fMatchedVy, fMatchedVz};
-        fDistanceFromMatched = geoHelper.distance(fStart_true, fTrue_v);
-      }
-    }
 
     fChargeTree->Fill();
     clear();

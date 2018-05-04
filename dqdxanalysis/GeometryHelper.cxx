@@ -3,10 +3,13 @@
 
 #include "GeometryHelper.h"
 
-namespace lee {
+namespace lee
+{
 
-bool GeometryHelper::isFiducial(const std::vector<double> &x) const {
-  if (x.size() != 3) {
+bool GeometryHelper::isFiducial(const std::vector<double> &x) const
+{
+  if (x.size() != 3)
+  {
     return false;
   }
 
@@ -27,7 +30,8 @@ bool GeometryHelper::isFiducial(const std::vector<double> &x) const {
   // return is_x && is_y && is_z;
 }
 
-bool GeometryHelper::isFiducial(const TVector3 &x) const {
+bool GeometryHelper::isFiducial(const TVector3 &x) const
+{
   std::vector<double> _x(3);
 
   _x[0] = x[0];
@@ -51,13 +55,13 @@ bool GeometryHelper::isFiducial(const TVector3 &x) const {
   // return is_x && is_y && is_z;
 }
 
-bool GeometryHelper::isFiducial(const double x[3]) const {
+bool GeometryHelper::isFiducial(const double x[3]) const
+{
 
   art::ServiceHandle<geo::Geometry> geo;
   std::vector<double> bnd = {
       0., 2. * geo->DetHalfWidth(), -geo->DetHalfHeight(), geo->DetHalfHeight(),
       0., geo->DetLength()};
-
 
   bool is_x =
       x[0] > (bnd[0] + m_fidvolXstart) && x[0] < (bnd[1] - m_fidvolXend);
@@ -68,15 +72,18 @@ bool GeometryHelper::isFiducial(const double x[3]) const {
   return is_x && is_y && is_z;
 }
 
-bool GeometryHelper::isActive(const std::vector<double> &x) const {
-  if (x.size() != 3) {
+bool GeometryHelper::isActive(const std::vector<double> &x) const
+{
+  if (x.size() != 3)
+  {
     return false;
   }
 
   return this->isActive(&x[0]);
 }
 
-bool GeometryHelper::isActive(const double x[3]) const {
+bool GeometryHelper::isActive(const double x[3]) const
+{
 
   art::ServiceHandle<geo::Geometry> geo;
   std::vector<double> bnd = {
@@ -90,27 +97,45 @@ bool GeometryHelper::isActive(const double x[3]) const {
 }
 
 double GeometryHelper::distance(const std::vector<double> &a,
-                                const std::vector<double> &b) const {
-  if (a.size() != 3 || b.size() != 3) {
+                                const std::vector<double> &b) const
+{
+  if (a.size() != 3 || b.size() != 3)
+  {
     return -1;
   }
 
   double d = 0;
 
-  for (int i = 0; i < 3; i++) {
+  for (int i = 0; i < 3; i++)
+  {
     d += pow((a[i] - b[i]), 2);
   }
 
   return sqrt(d);
 }
 
-double GeometryHelper::distance(const TVector3 &a, const TVector3 &b) const {
+double GeometryHelper::distance(const double a[3],
+                                const double b[3]) const
+{
+  double d = 0;
+
+  for (size_t i = 0; i < 3; i++)
+  {
+    d += pow((a[i] - b[i]), 2);
+  }
+
+  return sqrt(d);
+}
+
+double GeometryHelper::distance(const TVector3 &a, const TVector3 &b) const
+{
   return (a - b).Mag();
 }
 
 void GeometryHelper::setFiducialVolumeCuts(
     float m_fidvolXstart, float m_fidvolXend, float m_fidvolYstart,
-    float m_fidvolYend, float m_fidvolZstart, float m_fidvolZend) {
+    float m_fidvolYend, float m_fidvolZstart, float m_fidvolZend)
+{
   this->m_fidvolXstart = m_fidvolXstart;
   this->m_fidvolXend = m_fidvolXend;
   this->m_fidvolYstart = m_fidvolYstart;
@@ -120,16 +145,17 @@ void GeometryHelper::setFiducialVolumeCuts(
   std::cout << "Fidvol x start-end " << m_fidvolXstart << " " << m_fidvolXend << std::endl;
   std::cout << "Fidvol y start-end " << m_fidvolYstart << " " << m_fidvolYend << std::endl;
   std::cout << "Fidvol z start-end " << m_fidvolZstart << " " << m_fidvolZend << std::endl;
-
 }
 
 TVector3 GeometryHelper::getAveragePosition(
-    std::vector<art::Ptr<recob::SpacePoint>> &spcpnts) {
+    std::vector<art::Ptr<recob::SpacePoint>> &spcpnts)
+{
   double avg_x = 0;
   double avg_y = 0;
   double avg_z = 0;
 
-  for (auto &spcpnt : spcpnts) {
+  for (auto &spcpnt : spcpnts)
+  {
     auto spcpnt_xyz = spcpnt->XYZ();
     avg_x += spcpnt_xyz[0];
     avg_y += spcpnt_xyz[1];
@@ -140,24 +166,25 @@ TVector3 GeometryHelper::getAveragePosition(
                   avg_z / spcpnts.size());
 }
 
-
-int GeometryHelper::isInside( std::vector<double> P,
-  std::vector< std::vector<double> > V) {
+int GeometryHelper::isInside(std::vector<double> P,
+                             std::vector<std::vector<double>> V)
+{
 
   int nvert = (int)V.size();
 
   int i, j, c = 0;
-  for (i = 0, j = nvert-1; i < nvert; j = i++) {
-    if ( ((V[i][1]>P[1]) != (V[j][1]>P[1])) &&
-    (P[0] < (V[j][0]-V[i][0]) * (P[1]-V[i][1]) / (V[j][1]-V[i][1]) + V[i][0]) )
-    c = !c;
+  for (i = 0, j = nvert - 1; i < nvert; j = i++)
+  {
+    if (((V[i][1] > P[1]) != (V[j][1] > P[1])) &&
+        (P[0] < (V[j][0] - V[i][0]) * (P[1] - V[i][1]) / (V[j][1] - V[i][1]) + V[i][0]))
+      c = !c;
   }
   return c;
 }
 
-
 double GeometryHelper::getPitch(const TVector3 &direction,
-                                const int &pl) const {
+                                const int &pl) const
+{
   // prepare a direction vector for the plane
   TVector3 wireDir = {0., 0., 0.};
   // the direction of the plane is the vector uniting two consecutive wires
@@ -187,7 +214,8 @@ double GeometryHelper::getPitch(const TVector3 &direction,
 void GeometryHelper::buildRectangle(double length, double width,
                                     std::vector<double> &start,
                                     std::vector<double> &axis,
-                                    std::vector<std::vector<double>> &points) {
+                                    std::vector<std::vector<double>> &points)
+{
   double perp_axis[2] = {-axis[1], axis[0]};
 
   std::vector<double> p1 = {start[0] + perp_axis[0] * width / 2,
@@ -198,15 +226,13 @@ void GeometryHelper::buildRectangle(double length, double width,
                             start[1] - perp_axis[1] * width / 2};
   std::vector<double> p4 = {p3[0] + axis[0] * length, p3[1] + axis[1] * length};
 
-
-
-
   points.insert(points.end(), {p1, p2, p4, p3});
 }
 
 // CORRECT SHOWER DIRECTION THAT SOMETIMES IS INVERTED
 int GeometryHelper::correct_direction(size_t pfp_id, const art::Event &evt,
-                                      std::string _pfp_producer) {
+                                      std::string _pfp_producer)
+{
 
   auto const &pfparticle_handle =
       evt.getValidHandle<std::vector<recob::PFParticle>>(_pfp_producer);
@@ -218,7 +244,8 @@ int GeometryHelper::correct_direction(size_t pfp_id, const art::Event &evt,
 
   int direction = 1;
 
-  if (spcpnts.size() > 0) {
+  if (spcpnts.size() > 0)
+  {
     art::FindOneP<recob::Vertex> vertex_per_pfpart(pfparticle_handle, evt,
                                                    _pfp_producer);
     auto const &vertex_obj = vertex_per_pfpart.at(pfp_id);
@@ -244,6 +271,57 @@ int GeometryHelper::correct_direction(size_t pfp_id, const art::Event &evt,
   }
 
   return direction;
+}
+
+double GeometryHelper::dotProduct(const double a[3],
+                                  const double b[3]) const
+{
+  double aux_dot_product = 0;
+  for (size_t i = 0; i < 3; i++)
+    aux_dot_product += a[i] * b[i];
+
+  return aux_dot_product;
+}
+
+double GeometryHelper::norm(const double a[3]) const
+{
+  return sqrt(dotProduct(a, a));
+}
+
+double GeometryHelper::costheta(const double a[3],
+                                const double b[3]) const
+{
+  double costheta = dotProduct(a, b);
+  costheta /= (norm(a) * norm(b));
+  return costheta;
+}
+
+void GeometryHelper::normalize(const double a[3], double a_normalized[3]) const
+{
+  double aux_norm = norm(a);
+  for (size_t i = 0; i < 3; i++)
+    a_normalized[i] = a[i] / aux_norm;
+}
+
+double GeometryHelper::scatteringAngle(const double previous_point[3],
+                                       const double this_point[3],
+                                       const double next_point[3]) const
+{
+  double diff1[3] = {
+      this_point[0] - previous_point[0],
+      this_point[1] - previous_point[1],
+      this_point[2] - previous_point[2],
+  };
+  double diff2[3] = {
+      next_point[0] - this_point[0],
+      next_point[1] - this_point[1],
+      next_point[2] - this_point[2],
+  };
+
+  double aux_cos = dotProduct(diff1, diff2);
+  aux_cos /= (norm(diff1) * norm(diff2));
+  double angle = acos(aux_cos);
+  return angle;
 }
 
 } // namespace lee

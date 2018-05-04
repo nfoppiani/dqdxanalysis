@@ -21,14 +21,16 @@
 
 #include "TVector3.h"
 
-namespace lee {
+namespace lee
+{
 
-class GeometryHelper : public HelperBase {
+class GeometryHelper : public HelperBase
+{
 public:
   GeometryHelper() = default;
   ~GeometryHelper() = default;
 
-  int isInside( std::vector<double> P, std::vector< std::vector<double> > V);
+  int isInside(std::vector<double> P, std::vector<std::vector<double>> V);
 
   /**
    * @brief Determine if the specified point is in the fiducial volume
@@ -81,6 +83,16 @@ public:
    */
   double distance(const std::vector<double> &a,
                   const std::vector<double> &b) const;
+
+  /**
+   * @brief Compute the 3D distance between two points
+   *
+   * @param a First Point
+   * @param b Second Point
+   * @return Returns SQRT( (a.x - b.x)^2 + (a.y - b.y)^2 + (a.z - b.z)^2 )
+   */
+  double distance(const double a[3],
+                  const double b[3]) const;
 
   /**
    * @brief Compute the 3D distance between two points
@@ -151,6 +163,18 @@ public:
 
   int correct_direction(size_t pfp_id, const art::Event &evt, std::string _pfp_producer);
 
+  double dotProduct(const double a[3],
+                                    const double b[3]) const;
+
+  double norm(const double a[3]) const;
+
+  double GeometryHelper::costheta(const double a[3], const double b[3]) const;
+
+  void normalize(const double a[3], double a_normalized[3]) const;
+
+  double scatteringAngle(const double previous_point[3], 
+                                         const double this_point[3], 
+                                         const double next_point[3]) const;
 
 private:
   float m_fidvolXstart;

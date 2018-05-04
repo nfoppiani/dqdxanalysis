@@ -60,7 +60,7 @@ public:
                       const art::Event &evt,
                       std::string _pfp_producer);
 
-  void dQdx_new(size_t pfp_id,
+  void dQdx(size_t pfp_id,
             const art::Event &evt,
             std::vector<double> &dqdx,
             std::vector<double> &dqdx_hits,
@@ -68,16 +68,6 @@ public:
             std::vector<double> &box_start,
             std::vector<double> &box_direction,
             std::string box_position,
-            double m_dQdxRectangleLength, double m_dQdxRectangleWidth,
-            std::string _pfp_producer);
-
-  void dQdx_old(size_t pfp_id,
-            const art::Event &evt,
-            std::vector<double> &dqdx,
-            std::vector<double> &dqdx_hits,
-            std::vector<int> &dqdx_wires,
-            std::vector<double> &box_start,
-            std::vector<double> &box_direction,
             double m_dQdxRectangleLength, double m_dQdxRectangleWidth,
             std::string _pfp_producer);
 
@@ -99,6 +89,9 @@ public:
   //                     double &mean,
   //                     double &std);
 
+  double integral2charge(const art::Event &evt, double const integral, int const plane) const;
+  
+  double dQdx2dEdx(double const dqdx) const;
   private:
     std::vector<double> _data_gain = {239.5, 239.5, 239.5}; // Only measured of collection plane, David Caratelli
     std::vector<double> _mc_gain = {193.0, 197.0, 197.0};   // Plane 0, plane 1, plane 2
