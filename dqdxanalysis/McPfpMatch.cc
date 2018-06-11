@@ -262,7 +262,8 @@ namespace ubana {
   }
 
   //___________________________________________________________________________________________________
-  void McPfpMatch::GetRecoToTrueMatches(lar_pandora::PFParticlesToMCParticles &matchedParticles) 
+  void McPfpMatch::GetRecoToTrueMatches(lar_pandora::PFParticlesToMCParticles &matchedParticles, 
+                                        lar_pandora::PFParticlesToFractionMCParticleHits &matchedHitsFraction) 
   {
 
     if (!_configured) {
@@ -304,13 +305,17 @@ namespace ubana {
   
       // Now we want to find the true particle that has more hits in common with this reco particle than the others
       lar_pandora::MCParticlesToHits::const_iterator mIter = truthContributionMap.end();
-  
+
+      double total_hits = 0, max_hits = 0;
+
       for (lar_pandora::MCParticlesToHits::const_iterator iter4 = truthContributionMap.begin(), iterEnd4 = truthContributionMap.end();
            iter4 != iterEnd4; ++iter4) 
       {
+        total_hits += iter4->second.size();
         if ((truthContributionMap.end() == mIter) || (iter4->second.size() > mIter->second.size())) 
         {
             mIter = iter4;
+            max_hits = iter4->second.size();
         }
       }
  
@@ -322,6 +327,7 @@ namespace ubana {
 
         // Emplace into the output map
         matchedParticles[recoParticle] = trueParticle;
+        matchedHitsFraction[recoParticle] = max_hits/total_hits;
       }
       
     } // _pfp_to_hits_map loop ends

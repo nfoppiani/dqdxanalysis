@@ -68,6 +68,7 @@ public:
   void clear();
 
   void recoTrueMatching(art::Event const &evt, art::Ptr<recob::PFParticle> const &pfparticle);
+  void shiftTruePosition(double true_point[3], double true_point_shifted[3]);
   void trueNeutrinoInformation(art::Event const &evt);
   // double GetChargeCorrection(int plane, double x, double y, double z);
 
@@ -96,10 +97,10 @@ private:
   double fDistanceFromTrue;
 
   double fTrue_vx, fTrue_vy, fTrue_vz;
-  std::vector<double> fTrue_v;
+  double fTrue_v[3];
   int fTrue_nu_pdg, fTrue_ccnc;
   double fTrue_nu_energy, fTrue_theta, fTrue_vx_sce, fTrue_vy_sce, fTrue_vz_sce;
-  std::vector<double> fTrue_v_sce;
+  double fTrue_v_sce[3];
 
   double fAngleZXplanePF;
   int fNhits, fNclusters;
@@ -115,6 +116,7 @@ private:
   double fMatchedVx, fMatchedVy, fMatchedVz;
   double fMatchedEndx, fMatchedEndy, fMatchedEndz;
   double fDistanceFromMatched, fMC_reco_costheta;
+  double fFractionMatchedHits;
 
   // dqdx information
   double _dQdxRectangleLength;
@@ -129,6 +131,7 @@ private:
   double fBox_start_z_start, fBox_start_x_start, fBox_direction_z_start, fBox_direction_x_start;
   double fReco_energy_U_start, fReco_energy_V_start, fReco_energy_Y_start;
   double fAngleZXplaneCluster_start, fDistance_starts_start;
+  double fDistance_recotrue_starts_start, fDistance_recotrue_shifted_starts_start;
 
   std::vector<double> fDQdx_hits_end;
   std::vector<int> fDQdx_wires_end;
@@ -203,6 +206,7 @@ dqdxAnalyzer::dqdxAnalyzer(fhicl::ParameterSet const &p)
   fChargeTree->Branch("matched_endz", &fMatchedEndz, "matched_endz/d");
   fChargeTree->Branch("distance_from_matched", &fDistanceFromMatched, "distance_from_matched/d");
   fChargeTree->Branch("mc_reco_costheta", &fMC_reco_costheta, "mc_reco_costheta/d");
+  fChargeTree->Branch("fraction_matched_hits", &fFractionMatchedHits, "fraction_matched_hits/d");
 
   // dqdx information
   fChargeTree->Branch("reco_energy_U", &fReco_energy_U, "reco_energy_U/d");
@@ -224,6 +228,9 @@ dqdxAnalyzer::dqdxAnalyzer(fhicl::ParameterSet const &p)
   fChargeTree->Branch("box_direction_x_start", &fBox_direction_x_start, "box_direction_x_start/d");
   fChargeTree->Branch("angle_ZXplane_cluster_start", &fAngleZXplaneCluster_start, "angle_ZXplane_cluster_start/d");
   fChargeTree->Branch("distance_starts_start", &fDistance_starts_start, "distance_starts_start/d");
+
+  fChargeTree->Branch("distance_recotrue_starts_start", &fDistance_recotrue_starts_start, "distance_recotrue_starts_start/d");
+  fChargeTree->Branch("distance_recotrue_shifted_starts_start", &fDistance_recotrue_shifted_starts_start, "distance_recotrue_shifted_starts_start/d");
 
   fChargeTree->Branch("dQdx_hits_end", "std::vector<double>", &fDQdx_hits_end);
   fChargeTree->Branch("dQdx_wires_end", "std::vector<int>", &fDQdx_wires_end);
@@ -274,6 +281,7 @@ void dqdxAnalyzer::recoTrueMatching(art::Event const &evt, art::Ptr<recob::PFPar
     fMatchedEndx = 1000000.;
     fMatchedEndy = 1000000.;
     fMatchedEndz = 1000000.;
+    fFractionMatchedHits = -1;
   }
   else
   {
@@ -284,7 +292,8 @@ void dqdxAnalyzer::recoTrueMatching(art::Event const &evt, art::Ptr<recob::PFPar
 
     // This is a map: PFParticle to matched MCParticle: std::map<art::Ptr<recob::PFParticle>, art::Ptr<simb::MCParticle> >
     lar_pandora::PFParticlesToMCParticles matched_pfp_to_mcp_map;
-    _mcpfpMatcher.GetRecoToTrueMatches(matched_pfp_to_mcp_map);
+    lar_pandora::PFParticlesToFractionMCParticleHits matchedHitsFraction;
+    _mcpfpMatcher.GetRecoToTrueMatches(matched_pfp_to_mcp_map, matchedHitsFraction);
 
     auto iter = matched_pfp_to_mcp_map.find(pfparticle);
     if (iter == matched_pfp_to_mcp_map.end())
@@ -300,6 +309,7 @@ void dqdxAnalyzer::recoTrueMatching(art::Event const &evt, art::Ptr<recob::PFPar
       fMatchedEndx = 1000000.;
       fMatchedEndy = 1000000.;
       fMatchedEndz = 1000000.;
+      fFractionMatchedHits = -1;
     }
     else
     {
@@ -315,9 +325,41 @@ void dqdxAnalyzer::recoTrueMatching(art::Event const &evt, art::Ptr<recob::PFPar
       fMatchedEndx = mc_part->EndX();
       fMatchedEndy = mc_part->EndY();
       fMatchedEndz = mc_part->EndZ();
-      std::vector<double> fStart_true = {fMatchedVx, fMatchedVy, fMatchedVz};
+      double fStart_true[3] = {fMatchedVx, fMatchedVy, fMatchedVz};
       fDistanceFromMatched = geoHelper.distance(fStart_true, fTrue_v);
+
+      auto iter2 = matchedHitsFraction.find(pfparticle);
+      fFractionMatchedHits = iter2->second;
     }
+  }
+}
+
+void dqdxAnalyzer::shiftTruePosition(double true_point[3], double true_point_shifted[3])
+{
+  auto const *SCE = lar::providerFrom<spacecharge::SpaceChargeService>();
+  auto offset = SCE->GetPosOffsets(true_point[0], true_point[1], true_point[2]);
+  if (offset.size() == 3)
+  {
+    true_point_shifted[0] =
+        true_point[0] - offset[0] + 0.7;
+    true_point_shifted[1] =
+        true_point[1] + offset[1];
+    true_point_shifted[2] =
+        true_point[2] + offset[2];
+  }
+}
+
+void dqdxAnalyzer::clear()
+{
+  fDQdx_hits_start.clear();
+  fDQdx_wires_start.clear();
+
+  fDQdx_hits_end.clear();
+  fDQdx_wires_end.clear();
+  for (size_t i = 0; i < 3; i++)
+  {
+    fDQdx_start[i] = -1;
+    fDQdx_end[i] = -1;
   }
 }
 
@@ -353,146 +395,22 @@ void dqdxAnalyzer::trueNeutrinoInformation(art::Event const &evt)
         fTrue_vy = gen.GetNeutrino().Nu().Vy();
         fTrue_vz = gen.GetNeutrino().Nu().Vz();
 
-        fTrue_v = {fTrue_vx, fTrue_vy, fTrue_vz};
-        // _interaction_type = gen.GetNeutrino().InteractionType();
+        fTrue_v[0] = fTrue_vx;
+        fTrue_v[1] = fTrue_vy;
+        fTrue_v[2] = fTrue_vz;
 
-        auto const *SCE = lar::providerFrom<spacecharge::SpaceChargeService>();
-        if (SCE->GetPosOffsets(fTrue_vx, fTrue_vy, fTrue_vz).size() == 3)
+        try
         {
-          fTrue_vx_sce =
-              fTrue_vx - SCE->GetPosOffsets(fTrue_vx, fTrue_vy, fTrue_vz)[0] + 0.7;
-          fTrue_vy_sce =
-              fTrue_vy + SCE->GetPosOffsets(fTrue_vx, fTrue_vy, fTrue_vz)[1];
-          fTrue_vz_sce =
-              fTrue_vz + SCE->GetPosOffsets(fTrue_vx, fTrue_vy, fTrue_vz)[2];
-
-          fTrue_v_sce = {fTrue_vx_sce, fTrue_vy_sce, fTrue_vz_sce};
+          shiftTruePosition(fTrue_v, fTrue_v_sce);
         }
-        else
+        catch (...)
         {
           std::cout << "[PandoraLEEAnalyzer] "
                     << "Space Charge service offset size < 3" << std::endl;
           continue;
         }
-
-        // if (!geoHelper.isActive(true_neutrino_vertex))
-        // {
-        //   _category = k_dirt;
-        // }
       }
     }
-  }
-
-  // if (!there_is_a_neutrino)
-  // _category = k_cosmic;
-
-  // auto const &mcparticles_handle = evt.getValidHandle<std::vector<simb::MCParticle>>("largeant");
-  // auto const &mcparticles(*mcparticles_handle);
-
-  // for (auto &mcparticle : mcparticles)
-  // {
-  // if (!(mcparticle.Process() == "primary" &&
-  //   mcparticle.T() != 0 &&
-  //   mcparticle.StatusCode() == 1))
-  // continue;
-
-  // const auto mc_truth = pandoraHelper.TrackIDToMCTruth(evt, "largeant", mcparticle.TrackId());
-  // if (mc_truth->Origin() == simb::kBeamNeutrino)
-  // {
-  // _nu_daughters_E.push_back(mcparticle.E());
-  // _nu_daughters_pdg.push_back(mcparticle.PdgCode());
-
-  // _nu_daughters_px.push_back(mcparticle.Px());
-  // _nu_daughters_py.push_back(mcparticle.Py());
-  // _nu_daughters_pz.push_back(mcparticle.Pz());
-
-  // _nu_daughters_vx.push_back(mcparticle.Vx());
-  // _nu_daughters_vy.push_back(mcparticle.Vy());
-  // _nu_daughters_vz.push_back(mcparticle.Vz());
-
-  // _nu_daughters_endx.push_back(mcparticle.EndX());
-  // _nu_daughters_endy.push_back(mcparticle.EndY());
-  // _nu_daughters_endz.push_back(mcparticle.EndZ());
-  // }
-  // }
-
-  // //Insert block to save the start point of the MCshower object for all showers that have a neutrino as mother and a kbeamneutrino as origin
-  // auto const &mcshower_handle = evt.getValidHandle<std::vector<sim::MCShower>>("mcreco");
-  // for (size_t _i_mcs = 0; _i_mcs < mcshower_handle->size(); _i_mcs++)
-  // {
-  // int pdg_mother = mcshower_handle->at(_i_mcs).MotherPdgCode();
-  // int origin = mcshower_handle->at(_i_mcs).Origin();
-
-  // if ((pdg_mother == 22 || pdg_mother == 11) && origin == 1)
-  // {
-  // _true_shower_pdg.push_back(mcshower_handle->at(_i_mcs).AncestorPdgCode());
-  // _true_shower_depE.push_back(mcshower_handle->at(_i_mcs).DetProfile().E());
-
-  // double x_det = mcshower_handle->at(_i_mcs).Start().X();
-  // double y_det = mcshower_handle->at(_i_mcs).Start().Y();
-  // double z_det = mcshower_handle->at(_i_mcs).Start().Z();
-
-  // if (pdg_mother == 22)
-  // { //For photons take the end of the shower
-  // x_det = mcshower_handle->at(_i_mcs).End().X();
-  // y_det = mcshower_handle->at(_i_mcs).End().Y();
-  // z_det = mcshower_handle->at(_i_mcs).End().Z();
-  // }
-
-  // std::vector<double> dqdx = mcshower_handle->at(_i_mcs).dQdx();
-  // //std::vector< double > chrg = mcshower_handle->at(_i_mcs).Charge();
-
-  // //unsigned int maxindex= (dqdx.size() > chrg.size())? chrg.size() : dqdx.size();
-  // //std::cout << "[PandoraLEE] " << "dqdx.size(): " << dqdx.size() << "\t chrg.size(): " << chrg.size() << std::endl;
-  // //for(unsigned int j=0; j<maxindex; j++){
-  // //  std::cout << "[PandoraLEE] " << j << " dqdx: " << dqdx.at(j) << "\t chrg: " << chrg.at(j) << std::endl;
-  // //}
-
-  // auto const *SCE = lar::providerFrom<spacecharge::SpaceChargeService>();
-  // _true_shower_x_sce.push_back(x_det - SCE->GetPosOffsets(x_det, y_det, z_det)[0] + 0.7);
-  // _true_shower_y_sce.push_back(y_det + SCE->GetPosOffsets(x_det, y_det, z_det)[1]);
-  // _true_shower_z_sce.push_back(z_det + SCE->GetPosOffsets(x_det, y_det, z_det)[2]);
-
-  // //std::cout << "[PandoraLEE] "
-  // //    << "MCShower End: (" << x_det - SCE->GetPosOffsets(x_det, y_det, z_det)[0] + 0.7
-  // //    << "," << y_det + SCE->GetPosOffsets(x_det, y_det, z_det)[1]
-  // //    << "," << z_det + SCE->GetPosOffsets(x_det, y_det, z_det)[2] << ")" << std::endl;
-
-  // //std::cout << "[PandoraLEE] "
-  // //    << "TrueVTX: (" << _true_vx_sce << "," << _true_vy_sce << "," << _true_vz_sce << ")" << std::endl;
-  // }
-  // }
-
-  // if (_category != k_cosmic && _category != k_dirt && _category != k_nc)
-  // {
-  // if (abs(_nu_pdg) == 12)
-  // {
-  // _category = k_nu_e;
-  // }
-  // if (abs(_nu_pdg) == 14)
-  // {
-  // _category = k_nu_mu;
-  // }
-  // }
-  // }
-  // else
-  // {
-  //   _gain = 240;
-  //   _category = k_data;
-  // }
-}
-
-void dqdxAnalyzer::clear()
-{
-  fDQdx_hits_start.clear();
-  fDQdx_wires_start.clear();
-
-  fDQdx_hits_end.clear();
-  fDQdx_wires_end.clear();
-  for(size_t i=0; i<3; i++)
-  {
-    fDQdx_start[i] = -1;
-    fDQdx_end[i] = -1;
   }
 }
 
@@ -648,7 +566,7 @@ void dqdxAnalyzer::analyze(art::Event const &evt)
     fPitch_V = geoHelper.getPitch(t_reco_dir, 1);
     fPitch_Y = geoHelper.getPitch(t_reco_dir, 2);
 
-    std::vector<double> fStart = {fStartx, fStarty, fStartz};
+    double fStart[3] = {fStartx, fStarty, fStartz};
     fDistanceFromTrue = geoHelper.distance(fStart, fTrue_v_sce);
     // std::cout << "Startz: " << fStartz <<  ", Startx:  " << fStartx << std::endl;
     // clusters
@@ -690,7 +608,7 @@ void dqdxAnalyzer::analyze(art::Event const &evt)
     // dqdx start
     // fDQdx_start = {-1., -1., -1.};
     double box_start_start[3][2], box_direction_start[3][2];
-    for(size_t i=0; i<3; i++)
+    for (size_t i = 0; i < 3; i++)
     {
       box_start_start[i][0] = 1000000;
       box_start_start[i][1] = 1000000;
@@ -702,17 +620,17 @@ void dqdxAnalyzer::analyze(art::Event const &evt)
     std::vector<std::vector<int>> aux_dqdx_wires_start;
     aux_dqdx_wires_start.resize(3, std::vector<int>(0));
     std::string box_position_start = "start";
-    energyHelper.dQdx(i_pfp, 
-                          evt, 
-                          fDQdx_start, 
-                          aux_dqdx_hits_start, 
-                          aux_dqdx_wires_start, 
-                          box_start_start, 
-                          box_direction_start,
-                          box_position_start, 
-                          _dQdxRectangleLength, 
-                          _dQdxRectangleWidth, 
-                          _pfp_producer);
+    energyHelper.dQdx(i_pfp,
+                      evt,
+                      fDQdx_start,
+                      aux_dqdx_hits_start,
+                      aux_dqdx_wires_start,
+                      box_start_start,
+                      box_direction_start,
+                      box_position_start,
+                      _dQdxRectangleLength,
+                      _dQdxRectangleWidth,
+                      _pfp_producer);
     fDQdx_U_start = fDQdx_start[0];
     fDQdx_V_start = fDQdx_start[1];
     fDQdx_Y_start = fDQdx_start[2];
@@ -728,10 +646,16 @@ void dqdxAnalyzer::analyze(art::Event const &evt)
     fAngleZXplaneCluster_start = atan2(fBox_direction_x_start, fBox_direction_z_start);
     fDistance_starts_start = sqrt(pow((fBox_start_x_start - fStartx), 2) + pow((fBox_start_z_start - fStartz), 2));
 
+    fDistance_recotrue_starts_start = sqrt(pow((fBox_start_x_start - fMatchedVx), 2) + pow((fBox_start_z_start - fMatchedVz), 2));
+    double true_start[3] = {fMatchedVx, fMatchedVy, fMatchedVz};
+    double true_start_shifted[3];
+    shiftTruePosition(true_start, true_start_shifted);
+    fDistance_recotrue_shifted_starts_start = sqrt(pow((fBox_start_x_start - true_start_shifted[0]), 2) + pow((fBox_start_z_start - true_start_shifted[2]), 2));
+
     // dqdx end
     // fDQdx_end = {-1., -1., -1.};
     double box_start_end[3][2], box_direction_end[3][2];
-    for(size_t i=0; i<3; i++)
+    for (size_t i = 0; i < 3; i++)
     {
       box_start_end[i][0] = 1000000;
       box_start_end[i][1] = 1000000;
@@ -743,17 +667,17 @@ void dqdxAnalyzer::analyze(art::Event const &evt)
     std::vector<std::vector<int>> aux_dqdx_wires_end;
     aux_dqdx_wires_end.resize(3, std::vector<int>(0));
     std::string box_position_end = "end";
-    energyHelper.dQdx(i_pfp, 
-                          evt, 
-                          fDQdx_end, 
-                          aux_dqdx_hits_end, 
-                          aux_dqdx_wires_end, 
-                          box_start_end, 
-                          box_direction_end,
-                          box_position_end, 
-                          _dQdxRectangleLength_end, 
-                          _dQdxRectangleWidth, 
-                          _pfp_producer);
+    energyHelper.dQdx(i_pfp,
+                      evt,
+                      fDQdx_end,
+                      aux_dqdx_hits_end,
+                      aux_dqdx_wires_end,
+                      box_start_end,
+                      box_direction_end,
+                      box_position_end,
+                      _dQdxRectangleLength_end,
+                      _dQdxRectangleWidth,
+                      _pfp_producer);
     fDQdx_U_end = fDQdx_end[0];
     fDQdx_V_end = fDQdx_end[1];
     fDQdx_Y_end = fDQdx_end[2];

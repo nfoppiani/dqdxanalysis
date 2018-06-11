@@ -30,6 +30,7 @@
 
 namespace lar_pandora { 
   typedef std::map<art::Ptr<recob::PFParticle>, art::Ptr<simb::MCParticle>> PFParticlesToMCParticles;
+  typedef std::map<art::Ptr<recob::PFParticle>, double> PFParticlesToFractionMCParticleHits;
 }
 
 namespace ubana {
@@ -78,7 +79,8 @@ namespace ubana {
      *
      *  @param matchedParticles the output matches between reconstructed and true particles
      */  
-    void GetRecoToTrueMatches(lar_pandora::PFParticlesToMCParticles & matchedParticles);
+    void GetRecoToTrueMatches(lar_pandora::PFParticlesToMCParticles & matchedParticles,
+                              lar_pandora::PFParticlesToFractionMCParticleHits &matchedHitsFraction);
   
 
   protected:
