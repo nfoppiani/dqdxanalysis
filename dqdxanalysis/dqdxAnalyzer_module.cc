@@ -34,9 +34,14 @@
 #include "lardataobj/RecoBase/Cluster.h"
 
 #include "nusimdata/SimulationBase/MCParticle.h"
+#include "lardataobj/MCBase/MCShower.h"
+#include "lardataobj/MCBase/MCStep.h"
 
 #include "uboone/Database/TPCEnergyCalib/TPCEnergyCalibProvider.h"
 #include "uboone/Database/TPCEnergyCalib/TPCEnergyCalibService.h"
+
+#include "lardata/DetectorInfoServices/DetectorPropertiesService.h"
+#include "lardata/DetectorInfoServices/DetectorClocksService.h"
 
 #include "EnergyHelper.h"
 #include "GeometryHelper.h"
@@ -69,6 +74,10 @@ public:
 
   void recoTrueMatching(art::Event const &evt, art::Ptr<recob::PFParticle> const &pfparticle);
   void shiftTruePosition(double true_point[3], double true_point_shifted[3]);
+  void shiftTruePosition(double true_point[3], double true_time, double true_point_shifted[3]);
+  void shiftTruePosition_onlySCE(double true_point[3], double true_point_shifted[3]);
+  void shiftTruePosition_onlyGeant(double true_point[3], double true_time, double true_point_shifted[3]);
+
   void trueNeutrinoInformation(art::Event const &evt);
   // double GetChargeCorrection(int plane, double x, double y, double z);
 
@@ -117,6 +126,11 @@ private:
   double fMatchedEndx, fMatchedEndy, fMatchedEndz;
   double fDistanceFromMatched, fMC_reco_costheta;
   double fFractionMatchedHits;
+  unsigned int fMatchedTrackID;
+  double fMatchedT;
+  double fMatchedStartX_shifted, fMatchedStartY_shifted, fMatchedStartZ_shifted;
+  double fMatchedStartX_shifted_onlySCE, fMatchedStartY_shifted_onlySCE, fMatchedStartZ_shifted_onlySCE;
+  double fMatchedStartX_shifted_onlyGeant, fMatchedStartY_shifted_onlyGeant, fMatchedStartZ_shifted_onlyGeant;
 
   // dqdx information
   double _dQdxRectangleLength;
@@ -132,6 +146,12 @@ private:
   double fReco_energy_U_start, fReco_energy_V_start, fReco_energy_Y_start;
   double fAngleZXplaneCluster_start, fDistance_starts_start;
   double fDistance_recotrue_starts_start, fDistance_recotrue_shifted_starts_start;
+
+  double fMCShowerStartX, fMCShowerStartY, fMCShowerStartZ;
+  double fMCShowerStartX_shifted, fMCShowerStartY_shifted, fMCShowerStartZ_shifted;
+  double fMCShowerStartX_shifted_onlySCE, fMCShowerStartY_shifted_onlySCE, fMCShowerStartZ_shifted_onlySCE;
+  double fMCShowerStartX_shifted_onlyGeant, fMCShowerStartY_shifted_onlyGeant, fMCShowerStartZ_shifted_onlyGeant;
+  double fDistance_recotrue_mc_shower_starts_start, fDistance_recotrue_shifted_mc_shower_starts_start;
 
   std::vector<double> fDQdx_hits_end;
   std::vector<int> fDQdx_wires_end;
@@ -208,6 +228,16 @@ dqdxAnalyzer::dqdxAnalyzer(fhicl::ParameterSet const &p)
   fChargeTree->Branch("mc_reco_costheta", &fMC_reco_costheta, "mc_reco_costheta/d");
   fChargeTree->Branch("fraction_matched_hits", &fFractionMatchedHits, "fraction_matched_hits/d");
 
+  fChargeTree->Branch("matched_startX_shifted", &fMatchedStartX_shifted, "matched_startX_shifted/d");
+  fChargeTree->Branch("matched_startY_shifted", &fMatchedStartY_shifted, "matched_startY_shifted/d");
+  fChargeTree->Branch("matched_startZ_shifted", &fMatchedStartZ_shifted, "matched_startZ_shifted/d");
+  fChargeTree->Branch("matched_startX_shifted_onlySCE", &fMatchedStartX_shifted_onlySCE, "matched_startX_shifted_onlySCE/d");
+  fChargeTree->Branch("matched_startY_shifted_onlySCE", &fMatchedStartY_shifted_onlySCE, "matched_startY_shifted_onlySCE/d");
+  fChargeTree->Branch("matched_startZ_shifted_onlySCE", &fMatchedStartZ_shifted_onlySCE, "matched_startZ_shifted_onlySCE/d");
+  fChargeTree->Branch("matched_startX_shifted_onlyGeant", &fMatchedStartX_shifted_onlyGeant, "matched_startX_shifted_onlyGeant/d");
+  fChargeTree->Branch("matched_startY_shifted_onlyGeant", &fMatchedStartY_shifted_onlyGeant, "matched_startY_shifted_onlyGeant/d");
+  fChargeTree->Branch("matched_startZ_shifted_onlyGeant", &fMatchedStartZ_shifted_onlyGeant, "matched_startZ_shifted_onlyGeant/d");
+
   // dqdx information
   fChargeTree->Branch("reco_energy_U", &fReco_energy_U, "reco_energy_U/d");
   fChargeTree->Branch("reco_energy_V", &fReco_energy_V, "reco_energy_V/d");
@@ -231,6 +261,27 @@ dqdxAnalyzer::dqdxAnalyzer(fhicl::ParameterSet const &p)
 
   fChargeTree->Branch("distance_recotrue_starts_start", &fDistance_recotrue_starts_start, "distance_recotrue_starts_start/d");
   fChargeTree->Branch("distance_recotrue_shifted_starts_start", &fDistance_recotrue_shifted_starts_start, "distance_recotrue_shifted_starts_start/d");
+
+  fChargeTree->Branch("mc_shower_start_x", &fMCShowerStartX, "mc_shower_start_x/d");
+  fChargeTree->Branch("mc_shower_start_y", &fMCShowerStartY, "mc_shower_start_y/d");
+  fChargeTree->Branch("mc_shower_start_z", &fMCShowerStartZ, "mc_shower_start_z/d");
+
+  fChargeTree->Branch("mc_shower_startX_shifted", &fMCShowerStartX_shifted, "mc_shower_startX_shifted/d");
+  fChargeTree->Branch("mc_shower_startY_shifted", &fMCShowerStartY_shifted, "mc_shower_startY_shifted/d");
+  fChargeTree->Branch("mc_shower_startZ_shifted", &fMCShowerStartZ_shifted, "mc_shower_startZ_shifted/d");
+  fChargeTree->Branch("mc_shower_startX_shifted_onlySCE", &fMCShowerStartX_shifted_onlySCE, "mc_shower_startX_shifted_onlySCE/d");
+  fChargeTree->Branch("mc_shower_startY_shifted_onlySCE", &fMCShowerStartY_shifted_onlySCE, "mc_shower_startY_shifted_onlySCE/d");
+  fChargeTree->Branch("mc_shower_startZ_shifted_onlySCE", &fMCShowerStartZ_shifted_onlySCE, "mc_shower_startZ_shifted_onlySCE/d");
+  fChargeTree->Branch("mc_shower_startX_shifted_onlyGeant", &fMCShowerStartX_shifted_onlyGeant, "mc_shower_startX_shifted_onlyGeant/d");
+  fChargeTree->Branch("mc_shower_startY_shifted_onlyGeant", &fMCShowerStartY_shifted_onlyGeant, "mc_shower_startY_shifted_onlyGeant/d");
+  fChargeTree->Branch("mc_shower_startZ_shifted_onlyGeant", &fMCShowerStartZ_shifted_onlyGeant, "mc_shower_startZ_shifted_onlyGeant/d");
+
+  fChargeTree->Branch("distance_recotrue_mc_shower_starts_start",
+                      &fDistance_recotrue_mc_shower_starts_start,
+                      "distance_recotrue_mc_shower_starts_start/d");
+  fChargeTree->Branch("distance_recotrue_shifted_mc_shower_starts_start",
+                      &fDistance_recotrue_shifted_mc_shower_starts_start,
+                      "distance_recotrue_shifted_mc_shower_starts_start/d");
 
   fChargeTree->Branch("dQdx_hits_end", "std::vector<double>", &fDQdx_hits_end);
   fChargeTree->Branch("dQdx_wires_end", "std::vector<int>", &fDQdx_wires_end);
@@ -282,6 +333,17 @@ void dqdxAnalyzer::recoTrueMatching(art::Event const &evt, art::Ptr<recob::PFPar
     fMatchedEndy = 1000000.;
     fMatchedEndz = 1000000.;
     fFractionMatchedHits = -1;
+    fMatchedTrackID = -1;
+    fMatchedT = 1000000;
+    fMatchedStartX_shifted = 1000000;
+    fMatchedStartY_shifted = 1000000;
+    fMatchedStartZ_shifted = 1000000;
+    fMatchedStartX_shifted_onlySCE = 1000000;
+    fMatchedStartY_shifted_onlySCE = 1000000;
+    fMatchedStartZ_shifted_onlySCE = 1000000;
+    fMatchedStartX_shifted_onlyGeant = 1000000;
+    fMatchedStartY_shifted_onlyGeant = 1000000;
+    fMatchedStartZ_shifted_onlyGeant = 1000000;
   }
   else
   {
@@ -310,6 +372,17 @@ void dqdxAnalyzer::recoTrueMatching(art::Event const &evt, art::Ptr<recob::PFPar
       fMatchedEndy = 1000000.;
       fMatchedEndz = 1000000.;
       fFractionMatchedHits = -1;
+      fMatchedTrackID = -1;
+      fMatchedT = 1000000;
+      fMatchedStartX_shifted = 1000000;
+      fMatchedStartY_shifted = 1000000;
+      fMatchedStartZ_shifted = 1000000;
+      fMatchedStartX_shifted_onlySCE = 1000000;
+      fMatchedStartY_shifted_onlySCE = 1000000;
+      fMatchedStartZ_shifted_onlySCE = 1000000;
+      fMatchedStartX_shifted_onlyGeant = 1000000;
+      fMatchedStartY_shifted_onlyGeant = 1000000;
+      fMatchedStartZ_shifted_onlyGeant = 1000000;
     }
     else
     {
@@ -330,6 +403,27 @@ void dqdxAnalyzer::recoTrueMatching(art::Event const &evt, art::Ptr<recob::PFPar
 
       auto iter2 = matchedHitsFraction.find(pfparticle);
       fFractionMatchedHits = iter2->second;
+
+      fMatchedTrackID = mc_part->TrackId();
+      fMatchedT = mc_part->T();
+
+      double matched_start_shifted[3];
+      shiftTruePosition(fStart_true, fMatchedT, matched_start_shifted);
+      fMatchedStartX_shifted = matched_start_shifted[0];
+      fMatchedStartY_shifted = matched_start_shifted[1];
+      fMatchedStartZ_shifted = matched_start_shifted[2];
+
+      double matched_start_shifted_onlySCE[3];
+      shiftTruePosition_onlySCE(fStart_true, matched_start_shifted_onlySCE);
+      fMatchedStartX_shifted_onlySCE = matched_start_shifted_onlySCE[0];
+      fMatchedStartY_shifted_onlySCE = matched_start_shifted_onlySCE[1];
+      fMatchedStartZ_shifted_onlySCE = matched_start_shifted[2];
+
+      double matched_start_shifted_onlyGeant[3];
+      shiftTruePosition_onlyGeant(fStart_true, fMatchedT, matched_start_shifted_onlyGeant);
+      fMatchedStartX_shifted_onlyGeant = matched_start_shifted_onlyGeant[0];
+      fMatchedStartY_shifted_onlyGeant = matched_start_shifted_onlyGeant[1];
+      fMatchedStartZ_shifted_onlyGeant = matched_start_shifted_onlyGeant[2];
     }
   }
 }
@@ -347,6 +441,71 @@ void dqdxAnalyzer::shiftTruePosition(double true_point[3], double true_point_shi
     true_point_shifted[2] =
         true_point[2] + offset[2];
   }
+}
+
+void dqdxAnalyzer::shiftTruePosition(double true_point[3], double true_time, double true_point_shifted[3])
+{
+  true_point_shifted[0] = true_point[0];
+  true_point_shifted[1] = true_point[1];
+  true_point_shifted[2] = true_point[2];
+
+  ::detinfo::DetectorProperties const* _detector_properties;
+  ::detinfo::DetectorClocks const* _detector_clocks;
+
+  _detector_properties = lar::providerFrom<detinfo::DetectorPropertiesService>();
+  _detector_clocks = lar::providerFrom<detinfo::DetectorClocksService>();
+
+  double g4Ticks = _detector_clocks->TPCG4Time2Tick(true_time)
+                       + _detector_properties->GetXTicksOffset(0,0,0)
+                       - _detector_properties->TriggerOffset();
+  double xOffset = _detector_properties->ConvertTicksToX(g4Ticks, 0, 0, 0);
+
+  true_point_shifted[0] += xOffset;
+
+  auto const *SCE = lar::providerFrom<spacecharge::SpaceChargeService>();
+  auto offset = SCE->GetPosOffsets(true_point[0], true_point[1], true_point[2]);
+  if (offset.size() == 3)
+  {
+    true_point_shifted[0] -= offset[0];
+    true_point_shifted[1] += offset[1];
+    true_point_shifted[2] += offset[2];
+  }
+}
+
+void dqdxAnalyzer::shiftTruePosition_onlySCE(double true_point[3], double true_point_shifted[3])
+{
+  true_point_shifted[0] = true_point[0];
+  true_point_shifted[1] = true_point[1];
+  true_point_shifted[2] = true_point[2];
+
+  auto const *SCE = lar::providerFrom<spacecharge::SpaceChargeService>();
+  auto offset = SCE->GetPosOffsets(true_point[0], true_point[1], true_point[2]);
+  if (offset.size() == 3)
+  {
+    true_point_shifted[0] -= offset[0];
+    true_point_shifted[1] += offset[1];
+    true_point_shifted[2] += offset[2];
+  }
+}
+
+void dqdxAnalyzer::shiftTruePosition_onlyGeant(double true_point[3], double true_time, double true_point_shifted[3])
+{
+  true_point_shifted[0] = true_point[0];
+  true_point_shifted[1] = true_point[1];
+  true_point_shifted[2] = true_point[2];
+
+  ::detinfo::DetectorProperties const* _detector_properties;
+  ::detinfo::DetectorClocks const* _detector_clocks;
+
+  _detector_properties = lar::providerFrom<detinfo::DetectorPropertiesService>();
+  _detector_clocks = lar::providerFrom<detinfo::DetectorClocksService>();
+
+  double g4Ticks = _detector_clocks->TPCG4Time2Tick(true_time)
+                       + _detector_properties->GetXTicksOffset(0,0,0)
+                       - _detector_properties->TriggerOffset();
+  double xOffset = _detector_properties->ConvertTicksToX(g4Ticks, 0, 0, 0);
+
+  true_point_shifted[0] += xOffset;
 }
 
 void dqdxAnalyzer::clear()
@@ -402,6 +561,10 @@ void dqdxAnalyzer::trueNeutrinoInformation(art::Event const &evt)
         try
         {
           shiftTruePosition(fTrue_v, fTrue_v_sce);
+
+          fTrue_vx_sce = fTrue_v_sce[0];
+          fTrue_vy_sce = fTrue_v_sce[1];
+          fTrue_vz_sce = fTrue_v_sce[2];
         }
         catch (...)
         {
@@ -649,8 +812,71 @@ void dqdxAnalyzer::analyze(art::Event const &evt)
     fDistance_recotrue_starts_start = sqrt(pow((fBox_start_x_start - fMatchedVx), 2) + pow((fBox_start_z_start - fMatchedVz), 2));
     double true_start[3] = {fMatchedVx, fMatchedVy, fMatchedVz};
     double true_start_shifted[3];
-    shiftTruePosition(true_start, true_start_shifted);
+    shiftTruePosition(true_start, fMatchedT, true_start_shifted);
     fDistance_recotrue_shifted_starts_start = sqrt(pow((fBox_start_x_start - true_start_shifted[0]), 2) + pow((fBox_start_z_start - true_start_shifted[2]), 2));
+
+    if (fMatchedPdgCode == 11 || fMatchedPdgCode == 22)
+    {
+      auto const &mc_shower_handle = evt.getValidHandle<std::vector<sim::MCShower>>("mcreco");
+
+      for (size_t i_mc_shower = 0; i_mc_shower < mc_shower_handle->size(); i_mc_shower++)
+      {
+        sim::MCShower const mc_shower = mc_shower_handle->at(i_mc_shower);
+        if (mc_shower.TrackID() != fMatchedTrackID)
+        {
+          continue;
+        }
+        else
+        {
+          sim::MCStep mc_step_shower_start = mc_shower.DetProfile();
+          fMCShowerStartX = mc_step_shower_start.X();
+          fMCShowerStartY = mc_step_shower_start.Y();
+          fMCShowerStartZ = mc_step_shower_start.Z();
+          double mc_shower_start[3] = {fMCShowerStartX, fMCShowerStartY, fMCShowerStartZ};
+
+          double mc_shower_start_shifted[3];
+          shiftTruePosition(mc_shower_start, fMatchedT, mc_shower_start_shifted);
+          fMCShowerStartX_shifted = mc_shower_start_shifted[0];
+          fMCShowerStartY_shifted = mc_shower_start_shifted[1];
+          fMCShowerStartZ_shifted = mc_shower_start_shifted[2];
+
+          double mc_shower_start_shifted_onlySCE[3];
+          shiftTruePosition_onlySCE(mc_shower_start, mc_shower_start_shifted_onlySCE);
+          fMCShowerStartX_shifted_onlySCE = mc_shower_start_shifted_onlySCE[0];
+          fMCShowerStartY_shifted_onlySCE = mc_shower_start_shifted_onlySCE[1];
+          fMCShowerStartZ_shifted_onlySCE = mc_shower_start_shifted[2];
+
+          double mc_shower_start_shifted_onlyGeant[3];
+          shiftTruePosition_onlyGeant(mc_shower_start, fMatchedT, mc_shower_start_shifted_onlyGeant);
+          fMCShowerStartX_shifted_onlyGeant = mc_shower_start_shifted_onlyGeant[0];
+          fMCShowerStartY_shifted_onlyGeant = mc_shower_start_shifted_onlyGeant[1];
+          fMCShowerStartZ_shifted_onlyGeant = mc_shower_start_shifted_onlyGeant[2];
+          
+          fDistance_recotrue_mc_shower_starts_start =
+              sqrt(pow((fBox_start_x_start - fMCShowerStartX), 2) + pow((fBox_start_z_start - fMCShowerStartZ), 2));
+          fDistance_recotrue_shifted_mc_shower_starts_start =
+              sqrt(pow((fBox_start_x_start - mc_shower_start_shifted[0]), 2) + pow((fBox_start_z_start - mc_shower_start_shifted[2]), 2));
+          break;
+        }
+      }
+    }
+    else
+    {
+      fMCShowerStartX = 1000000;
+      fMCShowerStartY = 1000000;
+      fMCShowerStartZ = 1000000;
+      fDistance_recotrue_mc_shower_starts_start = 1000000;
+      fDistance_recotrue_shifted_mc_shower_starts_start = 1000000;
+      fMCShowerStartX_shifted = 1000000;
+      fMCShowerStartY_shifted = 1000000;
+      fMCShowerStartZ_shifted = 1000000;
+      fMCShowerStartX_shifted_onlySCE = 1000000;
+      fMCShowerStartY_shifted_onlySCE = 1000000;
+      fMCShowerStartZ_shifted_onlySCE = 1000000;
+      fMCShowerStartX_shifted_onlyGeant = 1000000;
+      fMCShowerStartY_shifted_onlyGeant = 1000000;
+      fMCShowerStartZ_shifted_onlyGeant = 1000000;
+    }
 
     // dqdx end
     // fDQdx_end = {-1., -1., -1.};

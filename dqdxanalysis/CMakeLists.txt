@@ -8,6 +8,8 @@ art_make(
                         larpandora_LArPandoraInterface
                         lardataobj_RecoBase
                         nusimdata_SimulationBase
+                        lardataobj_MCBase
+			lardataobj_Simulation
                         larcore_Geometry
                         larcore_Geometry_Geometry_service
                         art_Framework_Core
@@ -42,6 +44,8 @@ art_make(
 			larsim_MCCheater_BackTracker_service
                         lardataobj_RecoBase
                         nusimdata_SimulationBase
+                        lardataobj_MCBase
+			lardataobj_Simulation
                         larcore_Geometry
                         larcore_Geometry_Geometry_service
                         art_Framework_Core

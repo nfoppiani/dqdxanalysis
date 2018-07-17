@@ -284,6 +284,11 @@ void EnergyHelper::dQdx(size_t pfp_id,
     //std::cout << "[dQdx] Point 3 " << points[2][0] << " " << points[2][1] << std::endl;
     //std::cout << "[dQdx] Point 4 " << points[3][0] << " " << points[3][1] << std::endl;
 
+    box_start[plane_number][0] = cluster_start[0];
+    box_start[plane_number][1] = cluster_start[1];
+    box_direction[plane_number][0] = cluster_axis[0];
+    box_direction[plane_number][1] = cluster_axis[1];
+
     std::vector<double> dqdxs;
 
     for (auto &hit : hits)
@@ -299,10 +304,6 @@ void EnergyHelper::dQdx(size_t pfp_id,
         dqdxs.push_back(dedx);
         dqdx_hits[plane_number].push_back(dedx);
         dqdx_wires[plane_number].push_back(hit->WireID().Wire);
-        box_start[plane_number][0] = cluster_start[0];
-        box_start[plane_number][1] = cluster_start[1];
-        box_direction[plane_number][0] = cluster_axis[0];
-        box_direction[plane_number][1] = cluster_axis[1];
       }
     }
 

@@ -5,12 +5,12 @@
 <!ENTITY qualifier "e10:prof">
 <!ENTITY file_type "mc">
 <!ENTITY run_type "physics">
-<!ENTITY project_version "4">
+<!ENTITY project_version "6">
 <!ENTITY user "foppiani">
 <!ENTITY dataset "prodgenie_bnb_intrinsic_nue_cosmic_uboone_mcc8.7_reco2_dev">
 <!ENTITY stage_name "dqdx">
 <!--ENTITY tarball_location "/uboone/app/users/foppiani/Binaries/MyLarsoft/srcs/tar/v4/dqdx_analyzer.tar"-->
-<!ENTITY tarball_location "/pnfs/uboone/resilient/users/foppiani/tar/v3/dqdx_charge_analyzer.tar">
+<!ENTITY tarball_location "/pnfs/uboone/resilient/users/foppiani/tar/v5/dqdx_charge_analyzer.tar">
 <!ENTITY fcl_directory "/uboone/app/users/foppiani/Binaries/MyLarsoft/srcs/dqdxanalysis/dqdxanalysis/job/">
 <!ENTITY fcl_name "dqdxanalysis.fcl">
 <!ENTITY main_dir "/uboone/data/users/foppiani/">
